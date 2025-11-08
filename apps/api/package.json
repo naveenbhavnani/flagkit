@@ -16,13 +16,16 @@
     "@fastify/jwt": "^7.2.4",
     "@fastify/multipart": "^8.1.0",
     "@fastify/websocket": "^9.0.0",
+    "bcrypt": "^5.1.1",
     "fastify": "^4.25.2",
+    "fastify-plugin": "^5.1.0",
     "zod": "^3.22.4"
   },
   "devDependencies": {
     "@flagkit/config": "workspace:*",
     "@flagkit/database": "workspace:*",
     "@flagkit/types": "workspace:*",
+    "@types/bcrypt": "^5.0.2",
     "@types/node": "^20.10.6",
     "@typescript-eslint/eslint-plugin": "^6.17.0",
     "@typescript-eslint/parser": "^6.17.0",

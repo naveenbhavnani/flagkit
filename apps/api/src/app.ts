@@ -4,6 +4,8 @@ import multipart from '@fastify/multipart';
 import websocket from '@fastify/websocket';
 import { config } from './config';
 import { prisma } from '@flagkit/database';
+import jwtPlugin from './plugins/jwt.plugin';
+import authRoutes from './routes/auth.routes';
 
 export const createServer = async (): Promise<FastifyInstance> => {
   const server = Fastify({
@@ -30,6 +32,9 @@ export const createServer = async (): Promise<FastifyInstance> => {
 
   await server.register(multipart);
   await server.register(websocket);
+
+  // Register JWT plugin
+  await server.register(jwtPlugin);
 
   // Health check route
   server.get('/health', async () => {
@@ -71,9 +76,9 @@ export const createServer = async (): Promise<FastifyInstance> => {
     };
   });
 
-  // TODO: Register routes
-  // await server.register(authRoutes, { prefix: '/api/v1/auth' });
-  // await server.register(flagRoutes, { prefix: '/api/v1/flags' });
+  // Register routes
+  await server.register(authRoutes, { prefix: '/api/v1/auth' });
+  // TODO: await server.register(flagRoutes, { prefix: '/api/v1/flags' });
 
   return server;
 };
