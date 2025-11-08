@@ -77,6 +77,18 @@ export interface CreateOrganizationInput {
   slug: string;
 }
 
+export interface CreateProjectInput {
+  name: string;
+  key: string;
+  description?: string;
+}
+
+export interface UpdateProjectInput {
+  name?: string;
+  key?: string;
+  description?: string;
+}
+
 class ApiClient {
   private baseUrl: string;
 
@@ -184,6 +196,71 @@ class ApiClient {
         Authorization: `Bearer ${token}`,
       },
       body: JSON.stringify(data),
+    });
+  }
+
+  // Project methods
+  async createProject(
+    token: string,
+    organizationId: string,
+    data: CreateProjectInput
+  ): Promise<ApiResponse<{ project: Project }>> {
+    return this.request<{ project: Project }>(
+      `/api/v1/organizations/${organizationId}/projects`,
+      {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(data),
+      }
+    );
+  }
+
+  async getOrganizationProjects(
+    token: string,
+    organizationId: string
+  ): Promise<ApiResponse<{ projects: Project[] }>> {
+    return this.request<{ projects: Project[] }>(
+      `/api/v1/organizations/${organizationId}/projects`,
+      {
+        method: 'GET',
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
+  }
+
+  async getProject(token: string, id: string): Promise<ApiResponse<{ project: Project }>> {
+    return this.request<{ project: Project }>(`/api/v1/projects/${id}`, {
+      method: 'GET',
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+  }
+
+  async updateProject(
+    token: string,
+    id: string,
+    data: UpdateProjectInput
+  ): Promise<ApiResponse<{ project: Project }>> {
+    return this.request<{ project: Project }>(`/api/v1/projects/${id}`, {
+      method: 'PUT',
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify(data),
+    });
+  }
+
+  async deleteProject(token: string, id: string): Promise<ApiResponse<{ message: string }>> {
+    return this.request<{ message: string }>(`/api/v1/projects/${id}`, {
+      method: 'DELETE',
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
     });
   }
 }
