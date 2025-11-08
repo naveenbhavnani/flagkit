@@ -52,6 +52,21 @@ export interface Project {
   updatedAt: string;
 }
 
+export interface Environment {
+  id: string;
+  name: string;
+  key: string;
+  color: string | null;
+  projectId: string;
+  clientSdkKey: string;
+  serverSdkKey: string;
+  createdAt: string;
+  updatedAt: string;
+  _count?: {
+    flagConfigs: number;
+  };
+}
+
 export interface Organization {
   id: string;
   name: string;
@@ -87,6 +102,18 @@ export interface UpdateProjectInput {
   name?: string;
   key?: string;
   description?: string;
+}
+
+export interface CreateEnvironmentInput {
+  name: string;
+  key: string;
+  color?: string;
+}
+
+export interface UpdateEnvironmentInput {
+  name?: string;
+  key?: string;
+  color?: string;
 }
 
 class ApiClient {
@@ -262,6 +289,94 @@ class ApiClient {
         Authorization: `Bearer ${token}`,
       },
     });
+  }
+
+  // Environment methods
+  async createEnvironment(
+    token: string,
+    projectId: string,
+    data: CreateEnvironmentInput
+  ): Promise<ApiResponse<{ environment: Environment }>> {
+    return this.request<{ environment: Environment }>(
+      `/api/v1/projects/${projectId}/environments`,
+      {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(data),
+      }
+    );
+  }
+
+  async getProjectEnvironments(
+    token: string,
+    projectId: string
+  ): Promise<ApiResponse<{ environments: Environment[] }>> {
+    return this.request<{ environments: Environment[] }>(
+      `/api/v1/projects/${projectId}/environments`,
+      {
+        method: 'GET',
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
+  }
+
+  async getEnvironment(
+    token: string,
+    id: string
+  ): Promise<ApiResponse<{ environment: Environment }>> {
+    return this.request<{ environment: Environment }>(`/api/v1/environments/${id}`, {
+      method: 'GET',
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+  }
+
+  async updateEnvironment(
+    token: string,
+    id: string,
+    data: UpdateEnvironmentInput
+  ): Promise<ApiResponse<{ environment: Environment }>> {
+    return this.request<{ environment: Environment }>(`/api/v1/environments/${id}`, {
+      method: 'PUT',
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify(data),
+    });
+  }
+
+  async deleteEnvironment(
+    token: string,
+    id: string
+  ): Promise<ApiResponse<{ message: string }>> {
+    return this.request<{ message: string }>(`/api/v1/environments/${id}`, {
+      method: 'DELETE',
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+  }
+
+  async regenerateEnvironmentKeys(
+    token: string,
+    id: string,
+    keyType: 'client' | 'server' | 'both'
+  ): Promise<ApiResponse<{ environment: Environment }>> {
+    return this.request<{ environment: Environment }>(
+      `/api/v1/environments/${id}/regenerate-keys`,
+      {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ keyType }),
+      }
+    );
   }
 }
 
