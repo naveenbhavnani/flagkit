@@ -8,6 +8,7 @@ import jwtPlugin from './plugins/jwt.plugin';
 import authRoutes from './routes/auth.routes';
 import organizationRoutes from './routes/organization.routes';
 import projectRoutes from './routes/project.routes';
+import environmentRoutes from './routes/environment.routes';
 
 export const createServer = async (): Promise<FastifyInstance> => {
   const server = Fastify({
@@ -82,6 +83,7 @@ export const createServer = async (): Promise<FastifyInstance> => {
   await server.register(authRoutes, { prefix: '/api/v1/auth' });
   await server.register(organizationRoutes, { prefix: '/api/v1/organizations' });
   await server.register(projectRoutes, { prefix: '/api/v1' });
+  await server.register(environmentRoutes, { prefix: '/api/v1' });
   // TODO: await server.register(flagRoutes, { prefix: '/api/v1/flags' });
 
   return server;
