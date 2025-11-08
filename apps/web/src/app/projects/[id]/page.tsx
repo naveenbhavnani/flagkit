@@ -476,7 +476,11 @@ export default function ProjectDetailPage() {
           {flags.length > 0 ? (
             <div className="grid gap-4">
               {flags.map((flag) => (
-                <Card key={flag.id}>
+                <Card
+                  key={flag.id}
+                  className="cursor-pointer hover:shadow-md transition-shadow"
+                  onClick={() => router.push(`/flags/${flag.id}`)}
+                >
                   <CardHeader>
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-3">
@@ -505,7 +509,14 @@ export default function ProjectDetailPage() {
                           </CardDescription>
                         </div>
                       </div>
-                      <Button variant="ghost" size="sm">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          // TODO: Add flag menu
+                        }}
+                      >
                         <MoreVertical className="h-4 w-4" />
                       </Button>
                     </div>
