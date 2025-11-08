@@ -10,6 +10,7 @@ import organizationRoutes from './routes/organization.routes';
 import projectRoutes from './routes/project.routes';
 import environmentRoutes from './routes/environment.routes';
 import flagRoutes from './routes/flag.routes';
+import sdkRoutes from './routes/sdk.routes';
 
 export const createServer = async (): Promise<FastifyInstance> => {
   const server = Fastify({
@@ -81,6 +82,10 @@ export const createServer = async (): Promise<FastifyInstance> => {
   });
 
   // Register routes
+  // SDK routes (no JWT auth required - uses SDK keys)
+  await server.register(sdkRoutes, { prefix: '/' });
+
+  // API routes (JWT auth required)
   await server.register(authRoutes, { prefix: '/api/v1/auth' });
   await server.register(organizationRoutes, { prefix: '/api/v1/organizations' });
   await server.register(projectRoutes, { prefix: '/api/v1' });
