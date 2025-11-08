@@ -6,6 +6,7 @@ import { config } from './config';
 import { prisma } from '@flagkit/database';
 import jwtPlugin from './plugins/jwt.plugin';
 import authRoutes from './routes/auth.routes';
+import organizationRoutes from './routes/organization.routes';
 
 export const createServer = async (): Promise<FastifyInstance> => {
   const server = Fastify({
@@ -78,6 +79,8 @@ export const createServer = async (): Promise<FastifyInstance> => {
 
   // Register routes
   await server.register(authRoutes, { prefix: '/api/v1/auth' });
+  await server.register(organizationRoutes, { prefix: '/api/v1/organizations' });
+  // TODO: await server.register(projectRoutes, { prefix: '/api/v1/projects' });
   // TODO: await server.register(flagRoutes, { prefix: '/api/v1/flags' });
 
   return server;
