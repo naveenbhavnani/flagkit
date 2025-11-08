@@ -28,6 +28,30 @@ export interface AuthResponse {
   tokens: AuthTokens;
 }
 
+export interface OrganizationMember {
+  id: string;
+  role: string;
+  userId: string;
+  organizationId: string;
+  invitedAt: string;
+  joinedAt: string | null;
+  user: {
+    id: string;
+    email: string;
+    name: string | null;
+    avatarUrl: string | null;
+  };
+}
+
+export interface Project {
+  id: string;
+  name: string;
+  key: string;
+  description: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface Organization {
   id: string;
   name: string;
@@ -39,6 +63,9 @@ export interface Organization {
   updatedAt: string;
   role?: string;
   joinedAt?: string;
+  userRole?: string;
+  members?: OrganizationMember[];
+  projects?: Project[];
   _count?: {
     members: number;
     projects: number;

@@ -10,6 +10,7 @@ interface OrganizationState {
 
   // Actions
   loadOrganizations: () => Promise<void>;
+  loadOrganization: (id: string) => Promise<void>;
   createOrganization: (data: CreateOrganizationInput) => Promise<Organization | null>;
   setCurrentOrganization: (org: Organization | null) => void;
   clearError: () => void;
@@ -51,6 +52,36 @@ export const useOrganizationStore = create<OrganizationState>((set, get) => ({
     } catch (error) {
       set({
         error: error instanceof Error ? error.message : 'Failed to load organizations',
+        isLoading: false,
+      });
+    }
+  },
+
+  loadOrganization: async (id: string) => {
+    const token = authStorage.getToken();
+    if (!token) {
+      set({ error: 'Not authenticated' });
+      return;
+    }
+
+    set({ isLoading: true, error: null });
+    try {
+      const response = await api.getOrganization(token, id);
+
+      if (response.success && response.data) {
+        set({
+          currentOrganization: response.data.organization,
+          isLoading: false,
+        });
+      } else {
+        set({
+          error: response.error?.message || 'Failed to load organization',
+          isLoading: false,
+        });
+      }
+    } catch (error) {
+      set({
+        error: error instanceof Error ? error.message : 'Failed to load organization',
         isLoading: false,
       });
     }
