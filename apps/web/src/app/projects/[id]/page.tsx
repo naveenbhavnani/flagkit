@@ -5,6 +5,7 @@ import { useRouter, useParams } from 'next/navigation';
 import { useAuthStore } from '@/stores/auth.store';
 import { useProjectStore } from '@/stores/project.store';
 import { useEnvironmentStore } from '@/stores/environment.store';
+import { useFlagStore } from '@/stores/flag.store';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import {
@@ -18,7 +19,7 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { ArrowLeft, Plus, Copy, Check } from 'lucide-react';
+import { ArrowLeft, Plus, Copy, Check, Flag, MoreVertical } from 'lucide-react';
 
 const ENVIRONMENT_COLORS = [
   { name: 'Green', value: '#10b981' },
@@ -37,6 +38,7 @@ export default function ProjectDetailPage() {
   const { isAuthenticated } = useAuthStore();
   const { currentProject, loadProject } = useProjectStore();
   const { environments, createEnvironment, loadProjectEnvironments } = useEnvironmentStore();
+  const { flags, createFlag, loadProjectFlags } = useFlagStore();
 
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [envName, setEnvName] = useState('');
@@ -47,6 +49,14 @@ export default function ProjectDetailPage() {
 
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
 
+  // Flag creation state
+  const [isCreateFlagDialogOpen, setIsCreateFlagDialogOpen] = useState(false);
+  const [flagName, setFlagName] = useState('');
+  const [flagKey, setFlagKey] = useState('');
+  const [flagDescription, setFlagDescription] = useState('');
+  const [createFlagError, setCreateFlagError] = useState('');
+  const [isCreatingFlag, setIsCreatingFlag] = useState(false);
+
   useEffect(() => {
     if (!isAuthenticated) {
       router.push('/login');
@@ -56,8 +66,9 @@ export default function ProjectDetailPage() {
     if (projectId) {
       loadProject(projectId);
       loadProjectEnvironments(projectId);
+      loadProjectFlags(projectId);
     }
-  }, [isAuthenticated, projectId, router, loadProject, loadProjectEnvironments]);
+  }, [isAuthenticated, projectId, router, loadProject, loadProjectEnvironments, loadProjectFlags]);
 
   if (!isAuthenticated) {
     return null;
@@ -125,6 +136,52 @@ export default function ProjectDetailPage() {
     await navigator.clipboard.writeText(text);
     setCopiedKey(key);
     setTimeout(() => setCopiedKey(null), 2000);
+  };
+
+  const generateFlagKey = (name: string) => {
+    return name
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '');
+  };
+
+  const handleFlagNameChange = (value: string) => {
+    setFlagName(value);
+    if (!flagKey || flagKey === generateFlagKey(flagName)) {
+      setFlagKey(generateFlagKey(value));
+    }
+  };
+
+  const handleCreateFlag = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setCreateFlagError('');
+
+    if (!flagName || !flagKey) {
+      setCreateFlagError('Name and key are required');
+      return;
+    }
+
+    if (!/^[a-z0-9_-]+$/.test(flagKey)) {
+      setCreateFlagError('Key can only contain lowercase letters, numbers, underscores, and hyphens');
+      return;
+    }
+
+    setIsCreatingFlag(true);
+    const flag = await createFlag(projectId, {
+      name: flagName,
+      key: flagKey,
+      description: flagDescription || undefined,
+    });
+    setIsCreatingFlag(false);
+
+    if (flag) {
+      setIsCreateFlagDialogOpen(false);
+      setFlagName('');
+      setFlagKey('');
+      setFlagDescription('');
+    } else {
+      setCreateFlagError('Failed to create flag');
+    }
   };
 
   return (
@@ -326,6 +383,170 @@ export default function ProjectDetailPage() {
                 <Button onClick={() => setIsCreateDialogOpen(true)}>
                   <Plus className="h-4 w-4 mr-2" />
                   Create Your First Environment
+                </Button>
+              </CardContent>
+            </Card>
+          )}
+        </div>
+
+        {/* Feature Flags Section */}
+        <div className="mb-8">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-2xl font-bold">Feature Flags</h2>
+            <Dialog open={isCreateFlagDialogOpen} onOpenChange={setIsCreateFlagDialogOpen}>
+              <DialogTrigger asChild>
+                <Button>
+                  <Plus className="h-4 w-4 mr-2" />
+                  New Flag
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
+                <form onSubmit={handleCreateFlag}>
+                  <DialogHeader>
+                    <DialogTitle>Create Feature Flag</DialogTitle>
+                    <DialogDescription>
+                      Create a new feature flag to control feature rollouts.
+                    </DialogDescription>
+                  </DialogHeader>
+
+                  <div className="space-y-4 py-4">
+                    {createFlagError && (
+                      <div className="p-3 text-sm text-red-500 bg-red-50 dark:bg-red-900/10 border border-red-200 dark:border-red-800 rounded-md">
+                        {createFlagError}
+                      </div>
+                    )}
+
+                    <div className="space-y-2">
+                      <Label htmlFor="flag-name">Flag Name</Label>
+                      <Input
+                        id="flag-name"
+                        placeholder="New Checkout Flow"
+                        value={flagName}
+                        onChange={(e) => handleFlagNameChange(e.target.value)}
+                        disabled={isCreatingFlag}
+                        required
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="flag-key">Flag Key</Label>
+                      <Input
+                        id="flag-key"
+                        placeholder="new-checkout-flow"
+                        value={flagKey}
+                        onChange={(e) => setFlagKey(e.target.value.toLowerCase())}
+                        disabled={isCreatingFlag}
+                        required
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        Lowercase letters, numbers, underscores, and hyphens only
+                      </p>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="flag-description">Description (Optional)</Label>
+                      <Input
+                        id="flag-description"
+                        placeholder="Enables the new checkout experience"
+                        value={flagDescription}
+                        onChange={(e) => setFlagDescription(e.target.value)}
+                        disabled={isCreatingFlag}
+                      />
+                    </div>
+                  </div>
+
+                  <DialogFooter>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => setIsCreateFlagDialogOpen(false)}
+                      disabled={isCreatingFlag}
+                    >
+                      Cancel
+                    </Button>
+                    <Button type="submit" disabled={isCreatingFlag}>
+                      {isCreatingFlag ? 'Creating...' : 'Create Flag'}
+                    </Button>
+                  </DialogFooter>
+                </form>
+              </DialogContent>
+            </Dialog>
+          </div>
+
+          {flags.length > 0 ? (
+            <div className="grid gap-4">
+              {flags.map((flag) => (
+                <Card key={flag.id}>
+                  <CardHeader>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className="p-2 rounded-lg bg-primary/10">
+                          <Flag className="h-5 w-5 text-primary" />
+                        </div>
+                        <div>
+                          <CardTitle className="text-lg">{flag.name}</CardTitle>
+                          <CardDescription className="flex items-center gap-2 mt-1">
+                            <code className="text-xs font-mono bg-muted px-2 py-0.5 rounded">
+                              {flag.key}
+                            </code>
+                            {flag.tags.length > 0 && (
+                              <>
+                                <span className="text-muted-foreground">•</span>
+                                {flag.tags.map((tag) => (
+                                  <span
+                                    key={tag}
+                                    className="text-xs bg-muted px-2 py-0.5 rounded"
+                                  >
+                                    {tag}
+                                  </span>
+                                ))}
+                              </>
+                            )}
+                          </CardDescription>
+                        </div>
+                      </div>
+                      <Button variant="ghost" size="sm">
+                        <MoreVertical className="h-4 w-4" />
+                      </Button>
+                    </div>
+                    {flag.description && (
+                      <p className="text-sm text-muted-foreground mt-2">
+                        {flag.description}
+                      </p>
+                    )}
+                  </CardHeader>
+                  <CardContent>
+                    <div className="flex items-center justify-between text-sm">
+                      <div className="flex items-center gap-4">
+                        <span className="text-muted-foreground">
+                          Type: <span className="text-foreground font-medium">{flag.type}</span>
+                        </span>
+                        <span className="text-muted-foreground">
+                          Status: <span className="text-foreground font-medium">{flag.status}</span>
+                        </span>
+                        {flag._count && (
+                          <span className="text-muted-foreground">
+                            {flag._count.envConfigs} environment{flag._count.envConfigs !== 1 ? 's' : ''} configured
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          ) : (
+            <Card>
+              <CardHeader>
+                <CardTitle>No feature flags yet</CardTitle>
+                <CardDescription>
+                  Create feature flags to control feature rollouts, run experiments, and manage your releases.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Button onClick={() => setIsCreateFlagDialogOpen(true)}>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Create Your First Flag
                 </Button>
               </CardContent>
             </Card>

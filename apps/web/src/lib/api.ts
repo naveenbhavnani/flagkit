@@ -116,6 +116,74 @@ export interface UpdateEnvironmentInput {
   color?: string;
 }
 
+export interface FlagVariation {
+  id: string;
+  key: string;
+  name: string;
+  value: string;
+  description: string | null;
+  flagId: string;
+}
+
+export interface Flag {
+  id: string;
+  key: string;
+  name: string;
+  description: string | null;
+  type: string;
+  status: string;
+  projectId: string;
+  tags: string[];
+  ownerId: string | null;
+  createdAt: string;
+  updatedAt: string;
+  variations: FlagVariation[];
+  _count?: {
+    envConfigs: number;
+  };
+}
+
+export interface FlagEnvironmentConfig {
+  id: string;
+  flagId: string;
+  environmentId: string;
+  enabled: boolean;
+  defaultVariationKey: string | null;
+  fallbackVariationKey: string | null;
+  targetingRules: unknown | null;
+  rolloutPercentage: number | null;
+  updatedAt: string;
+}
+
+export interface CreateFlagInput {
+  key: string;
+  name: string;
+  description?: string;
+  type?: string;
+  tags?: string[];
+  variations?: {
+    key: string;
+    name: string;
+    value: string;
+    description?: string;
+  }[];
+}
+
+export interface UpdateFlagInput {
+  name?: string;
+  description?: string;
+  status?: string;
+  tags?: string[];
+}
+
+export interface UpdateFlagConfigInput {
+  enabled?: boolean;
+  defaultVariationKey?: string;
+  fallbackVariationKey?: string;
+  targetingRules?: unknown;
+  rolloutPercentage?: number;
+}
+
 class ApiClient {
   private baseUrl: string;
 
@@ -375,6 +443,132 @@ class ApiClient {
           Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({ keyType }),
+      }
+    );
+  }
+
+  // Flag methods
+  async createFlag(
+    token: string,
+    projectId: string,
+    data: CreateFlagInput
+  ): Promise<ApiResponse<{ flag: Flag }>> {
+    return this.request<{ flag: Flag }>(`/api/v1/projects/${projectId}/flags`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify(data),
+    });
+  }
+
+  async getProjectFlags(
+    token: string,
+    projectId: string
+  ): Promise<ApiResponse<{ flags: Flag[] }>> {
+    return this.request<{ flags: Flag[] }>(`/api/v1/projects/${projectId}/flags`, {
+      method: 'GET',
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+  }
+
+  async getFlag(token: string, id: string): Promise<ApiResponse<{ flag: Flag }>> {
+    return this.request<{ flag: Flag }>(`/api/v1/flags/${id}`, {
+      method: 'GET',
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+  }
+
+  async updateFlag(
+    token: string,
+    id: string,
+    data: UpdateFlagInput
+  ): Promise<ApiResponse<{ flag: Flag }>> {
+    return this.request<{ flag: Flag }>(`/api/v1/flags/${id}`, {
+      method: 'PUT',
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify(data),
+    });
+  }
+
+  async deleteFlag(token: string, id: string): Promise<ApiResponse<{ message: string }>> {
+    return this.request<{ message: string }>(`/api/v1/flags/${id}`, {
+      method: 'DELETE',
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+  }
+
+  async getFlagEnvironmentConfig(
+    token: string,
+    flagId: string,
+    environmentId: string
+  ): Promise<ApiResponse<{ config: FlagEnvironmentConfig }>> {
+    return this.request<{ config: FlagEnvironmentConfig }>(
+      `/api/v1/flags/${flagId}/environments/${environmentId}/config`,
+      {
+        method: 'GET',
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
+  }
+
+  async updateFlagEnvironmentConfig(
+    token: string,
+    flagId: string,
+    environmentId: string,
+    data: UpdateFlagConfigInput
+  ): Promise<ApiResponse<{ config: FlagEnvironmentConfig }>> {
+    return this.request<{ config: FlagEnvironmentConfig }>(
+      `/api/v1/flags/${flagId}/environments/${environmentId}/config`,
+      {
+        method: 'PUT',
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(data),
+      }
+    );
+  }
+
+  async toggleFlagInEnvironment(
+    token: string,
+    flagId: string,
+    environmentId: string,
+    enabled: boolean
+  ): Promise<ApiResponse<{ config: FlagEnvironmentConfig }>> {
+    return this.request<{ config: FlagEnvironmentConfig }>(
+      `/api/v1/flags/${flagId}/environments/${environmentId}/toggle`,
+      {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ enabled }),
+      }
+    );
+  }
+
+  async getAllFlagEnvironmentConfigs(
+    token: string,
+    flagId: string
+  ): Promise<ApiResponse<{ configs: FlagEnvironmentConfig[] }>> {
+    return this.request<{ configs: FlagEnvironmentConfig[] }>(
+      `/api/v1/flags/${flagId}/environments/configs`,
+      {
+        method: 'GET',
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
       }
     );
   }

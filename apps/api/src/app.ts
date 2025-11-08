@@ -9,6 +9,7 @@ import authRoutes from './routes/auth.routes';
 import organizationRoutes from './routes/organization.routes';
 import projectRoutes from './routes/project.routes';
 import environmentRoutes from './routes/environment.routes';
+import flagRoutes from './routes/flag.routes';
 
 export const createServer = async (): Promise<FastifyInstance> => {
   const server = Fastify({
@@ -84,7 +85,7 @@ export const createServer = async (): Promise<FastifyInstance> => {
   await server.register(organizationRoutes, { prefix: '/api/v1/organizations' });
   await server.register(projectRoutes, { prefix: '/api/v1' });
   await server.register(environmentRoutes, { prefix: '/api/v1' });
-  // TODO: await server.register(flagRoutes, { prefix: '/api/v1/flags' });
+  await server.register(flagRoutes, { prefix: '/api/v1' });
 
   return server;
 };
