@@ -1,0 +1,454 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================
+// Authentication & User Management
+// ============================================
+
+enum AuthProvider {
+  EMAIL
+  GOOGLE
+  GITHUB
+  MICROSOFT
+}
+
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  emailVerified Boolean   @default(false)
+  name          String?
+  avatarUrl     String?
+  password      String?   // Hashed password for email/password auth
+  authProvider  AuthProvider @default(EMAIL)
+
+  twoFactorEnabled Boolean  @default(false)
+  twoFactorSecret  String?
+
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  lastLoginAt   DateTime?
+
+  // Relations
+  organizationMembers OrganizationMember[]
+  apiTokens           ApiToken[]
+  auditLogs          AuditLog[]
+  flagChanges        FlagChange[]
+  comments           Comment[]
+
+  @@index([email])
+}
+
+// ============================================
+// Organization & Project Structure
+// ============================================
+
+enum MemberRole {
+  OWNER
+  ADMIN
+  PROJECT_ADMIN
+  DEVELOPER
+  VIEWER
+}
+
+model Organization {
+  id          String   @id @default(cuid())
+  name        String
+  slug        String   @unique
+  logoUrl     String?
+
+  // Billing
+  subscriptionTier String @default("FREE") // FREE, DEVELOPER, BUSINESS, ENTERPRISE
+  subscriptionStatus String @default("ACTIVE")
+  billingEmail String?
+
+  // Settings
+  enforceOauth Boolean @default(false)
+  require2FA   Boolean @default(false)
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  members     OrganizationMember[]
+  projects    Project[]
+  apiTokens   ApiToken[]
+  auditLogs   AuditLog[]
+
+  @@index([slug])
+}
+
+model OrganizationMember {
+  id             String   @id @default(cuid())
+  role           MemberRole
+
+  userId         String
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  invitedAt      DateTime @default(now())
+  joinedAt       DateTime?
+
+  @@unique([userId, organizationId])
+  @@index([organizationId])
+  @@index([userId])
+}
+
+model Project {
+  id             String   @id @default(cuid())
+  name           String
+  description    String?
+
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  // Relations
+  environments   Environment[]
+  flags          Flag[]
+  segments       Segment[]
+
+  @@index([organizationId])
+}
+
+model Environment {
+  id          String   @id @default(cuid())
+  name        String   // e.g., "Development", "Staging", "Production"
+  key         String   // e.g., "dev", "staging", "prod"
+  color       String?  // Hex color for UI
+
+  projectId   String
+  project     Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  // SDK Keys
+  clientSdkKey String @unique @default(cuid())
+  serverSdkKey String @unique @default(cuid())
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  flagConfigs FlagEnvironmentConfig[]
+
+  @@unique([projectId, key])
+  @@index([projectId])
+  @@index([clientSdkKey])
+  @@index([serverSdkKey])
+}
+
+// ============================================
+// Feature Flags
+// ============================================
+
+enum FlagType {
+  BOOLEAN
+  STRING
+  NUMBER
+  JSON
+}
+
+enum FlagStatus {
+  ACTIVE
+  INACTIVE
+  ARCHIVED
+}
+
+model Flag {
+  id          String     @id @default(cuid())
+  key         String     // Unique key for the flag (e.g., "new_checkout_flow")
+  name        String     // Display name
+  description String?
+  type        FlagType   @default(BOOLEAN)
+  status      FlagStatus @default(ACTIVE)
+
+  projectId   String
+  project     Project    @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  // Metadata
+  tags        String[]   @default([])
+  ownerId     String?    // User who owns this flag
+
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  // Relations
+  variations  FlagVariation[]
+  envConfigs  FlagEnvironmentConfig[]
+  changes     FlagChange[]
+  experiments Experiment[]
+
+  @@unique([projectId, key])
+  @@index([projectId])
+  @@index([status])
+}
+
+model FlagVariation {
+  id          String   @id @default(cuid())
+  key         String   // e.g., "on", "off", "variant_a", "variant_b"
+  name        String   // Display name
+  value       String   // JSON-stringified value
+  description String?
+
+  flagId      String
+  flag        Flag     @relation(fields: [flagId], references: [id], onDelete: Cascade)
+
+  @@unique([flagId, key])
+  @@index([flagId])
+}
+
+model FlagEnvironmentConfig {
+  id            String   @id @default(cuid())
+
+  flagId        String
+  flag          Flag     @relation(fields: [flagId], references: [id], onDelete: Cascade)
+
+  environmentId String
+  environment   Environment @relation(fields: [environmentId], references: [id], onDelete: Cascade)
+
+  // Basic toggle
+  enabled       Boolean  @default(false)
+
+  // Default variation (when targeting is off or no rules match)
+  defaultVariationKey String?
+
+  // Fallback value (when SDK cannot reach service)
+  fallbackVariationKey String?
+
+  // Targeting rules (JSON-stringified)
+  targetingRules Json?    // Array of targeting rules
+
+  // Percentage rollout
+  rolloutPercentage Int?  @default(0) // 0-100
+
+  updatedAt     DateTime @updatedAt
+
+  @@unique([flagId, environmentId])
+  @@index([flagId])
+  @@index([environmentId])
+}
+
+// ============================================
+// Segmentation
+// ============================================
+
+model Segment {
+  id          String   @id @default(cuid())
+  key         String   // Unique key
+  name        String   // Display name
+  description String?
+
+  projectId   String
+  project     Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  // Segment conditions (JSON-stringified)
+  conditions  Json     // Array of conditions with AND/OR logic
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([projectId, key])
+  @@index([projectId])
+}
+
+// ============================================
+// Experimentation & Analytics
+// ============================================
+
+enum ExperimentStatus {
+  DRAFT
+  RUNNING
+  PAUSED
+  COMPLETED
+}
+
+model Experiment {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  hypothesis  String?
+
+  flagId      String
+  flag        Flag     @relation(fields: [flagId], references: [id], onDelete: Cascade)
+
+  status      ExperimentStatus @default(DRAFT)
+
+  // Experiment configuration
+  winnerVariationKey String? // Selected winner
+
+  // Metrics
+  primaryMetric   String?  // e.g., "conversion_rate"
+  guardrailMetrics String[] @default([])
+
+  // Timeline
+  startedAt   DateTime?
+  completedAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  // Relations
+  results     ExperimentResult[]
+
+  @@index([flagId])
+  @@index([status])
+}
+
+model ExperimentResult {
+  id              String   @id @default(cuid())
+
+  experimentId    String
+  experiment      Experiment @relation(fields: [experimentId], references: [id], onDelete: Cascade)
+
+  variationKey    String
+
+  // Statistics
+  sampleSize      Int      @default(0)
+  conversionRate  Float?
+  confidence      Float?   // 0-100
+
+  // Metrics (JSON-stringified)
+  metrics         Json?
+
+  updatedAt       DateTime @updatedAt
+
+  @@unique([experimentId, variationKey])
+  @@index([experimentId])
+}
+
+// ============================================
+// API Keys & Tokens
+// ============================================
+
+enum TokenType {
+  PERSONAL
+  SERVICE
+}
+
+model ApiToken {
+  id          String    @id @default(cuid())
+  name        String
+  token       String    @unique // Hashed token
+  type        TokenType @default(PERSONAL)
+
+  userId      String?
+  user        User?     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  // Scoping
+  scopes      String[]  @default([])
+
+  // Metadata
+  lastUsedAt  DateTime?
+  expiresAt   DateTime?
+
+  createdAt   DateTime  @default(now())
+
+  @@index([organizationId])
+  @@index([userId])
+  @@index([token])
+}
+
+// ============================================
+// Audit & Compliance
+// ============================================
+
+enum AuditAction {
+  CREATE
+  UPDATE
+  DELETE
+  TOGGLE
+  LOGIN
+  LOGOUT
+}
+
+enum AuditResourceType {
+  FLAG
+  ENVIRONMENT
+  PROJECT
+  ORGANIZATION
+  USER
+  API_TOKEN
+}
+
+model AuditLog {
+  id            String   @id @default(cuid())
+  action        AuditAction
+  resourceType  AuditResourceType
+  resourceId    String?
+
+  userId        String?
+  user          User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  // Details
+  changes       Json?    // Before/after values
+  metadata      Json?    // Additional context
+  ipAddress     String?
+  userAgent     String?
+
+  createdAt     DateTime @default(now())
+
+  @@index([organizationId])
+  @@index([userId])
+  @@index([resourceType, resourceId])
+  @@index([createdAt])
+}
+
+model FlagChange {
+  id          String   @id @default(cuid())
+
+  flagId      String
+  flag        Flag     @relation(fields: [flagId], references: [id], onDelete: Cascade)
+
+  userId      String?
+  user        User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  // Change details
+  changeType  String   // e.g., "CREATED", "UPDATED", "TOGGLED"
+  before      Json?
+  after       Json?
+  comment     String?
+
+  createdAt   DateTime @default(now())
+
+  @@index([flagId])
+  @@index([userId])
+  @@index([createdAt])
+}
+
+// ============================================
+// Collaboration
+// ============================================
+
+model Comment {
+  id          String   @id @default(cuid())
+  content     String
+
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Polymorphic relation
+  resourceType String  // e.g., "FLAG", "EXPERIMENT"
+  resourceId   String
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([resourceType, resourceId])
+  @@index([userId])
+}

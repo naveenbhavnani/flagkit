@@ -1,0 +1,10 @@
+{
+  "name": "@flagkit/config",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Shared configuration files for FlagKit monorepo",
+  "main": "index.js",
+  "files": [
+    "*.json"
+  ]
+}
