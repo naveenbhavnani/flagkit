@@ -162,7 +162,7 @@ export class OrganizationService {
    */
   async update(organizationId: string, userId: string, input: UpdateOrganizationInput) {
     // Check if user is owner or admin
-    const member = await this.checkPermission(organizationId, userId, [
+    await this.checkPermission(organizationId, userId, [
       MemberRole.OWNER,
       MemberRole.ADMIN,
     ]);
