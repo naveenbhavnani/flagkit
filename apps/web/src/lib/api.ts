@@ -28,6 +28,28 @@ export interface AuthResponse {
   tokens: AuthTokens;
 }
 
+export interface Organization {
+  id: string;
+  name: string;
+  slug: string;
+  logoUrl: string | null;
+  subscriptionTier: string;
+  subscriptionStatus: string;
+  createdAt: string;
+  updatedAt: string;
+  role?: string;
+  joinedAt?: string;
+  _count?: {
+    members: number;
+    projects: number;
+  };
+}
+
+export interface CreateOrganizationInput {
+  name: string;
+  slug: string;
+}
+
 class ApiClient {
   private baseUrl: string;
 
@@ -86,6 +108,55 @@ class ApiClient {
     return this.request<{ tokens: AuthTokens }>('/api/v1/auth/refresh', {
       method: 'POST',
       body: JSON.stringify({ refreshToken }),
+    });
+  }
+
+  // Organization methods
+  async createOrganization(
+    token: string,
+    data: CreateOrganizationInput
+  ): Promise<ApiResponse<{ organization: Organization }>> {
+    return this.request<{ organization: Organization }>('/api/v1/organizations', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify(data),
+    });
+  }
+
+  async getOrganizations(token: string): Promise<ApiResponse<{ organizations: Organization[] }>> {
+    return this.request<{ organizations: Organization[] }>('/api/v1/organizations', {
+      method: 'GET',
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+  }
+
+  async getOrganization(
+    token: string,
+    id: string
+  ): Promise<ApiResponse<{ organization: Organization }>> {
+    return this.request<{ organization: Organization }>(`/api/v1/organizations/${id}`, {
+      method: 'GET',
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+  }
+
+  async updateOrganization(
+    token: string,
+    id: string,
+    data: Partial<CreateOrganizationInput>
+  ): Promise<ApiResponse<{ organization: Organization }>> {
+    return this.request<{ organization: Organization }>(`/api/v1/organizations/${id}`, {
+      method: 'PUT',
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify(data),
     });
   }
 }
