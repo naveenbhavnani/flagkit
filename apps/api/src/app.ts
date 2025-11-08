@@ -3,6 +3,7 @@ import cors from '@fastify/cors';
 import multipart from '@fastify/multipart';
 import websocket from '@fastify/websocket';
 import { config } from './config';
+import { prisma } from '@flagkit/database';
 
 export const createServer = async (): Promise<FastifyInstance> => {
   const server = Fastify({
@@ -33,6 +34,32 @@ export const createServer = async (): Promise<FastifyInstance> => {
   // Health check route
   server.get('/health', async () => {
     return { status: 'ok', timestamp: new Date().toISOString() };
+  });
+
+  // Database health check
+  server.get('/health/db', async () => {
+    try {
+      await prisma.$queryRaw`SELECT 1`;
+      const orgCount = await prisma.organization.count();
+      const projectCount = await prisma.project.count();
+      const envCount = await prisma.environment.count();
+
+      return {
+        status: 'ok',
+        database: 'connected',
+        stats: {
+          organizations: orgCount,
+          projects: projectCount,
+          environments: envCount,
+        },
+      };
+    } catch (error) {
+      return {
+        status: 'error',
+        database: 'disconnected',
+        error: error instanceof Error ? error.message : 'Unknown error',
+      };
+    }
   });
 
   // API version route
