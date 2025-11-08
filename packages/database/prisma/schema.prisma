@@ -107,6 +107,7 @@ model OrganizationMember {
 model Project {
   id             String   @id @default(cuid())
   name           String
+  key            String   // Short unique identifier like "PROJ" or "ABC"
   description    String?
 
   organizationId String
@@ -120,6 +121,7 @@ model Project {
   flags          Flag[]
   segments       Segment[]
 
+  @@unique([organizationId, key]) // Key must be unique within organization
   @@index([organizationId])
 }
 
