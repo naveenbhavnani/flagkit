@@ -1,0 +1,51 @@
+{
+  "name": "@flagkit/sdk-js",
+  "version": "0.1.0",
+  "description": "FlagKit JavaScript/TypeScript SDK for feature flags",
+  "main": "dist/index.js",
+  "module": "dist/index.mjs",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsup src/index.ts --format cjs,esm --dts --clean",
+    "dev": "tsup src/index.ts --format cjs,esm --dts --watch",
+    "lint": "eslint src --ext .ts",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:ui": "vitest --ui",
+    "test:coverage": "vitest run --coverage"
+  },
+  "keywords": [
+    "feature-flags",
+    "feature-toggles",
+    "flagkit",
+    "sdk",
+    "typescript"
+  ],
+  "author": "FlagKit",
+  "license": "MIT",
+  "devDependencies": {
+    "@flagkit/config": "workspace:*",
+    "@types/node": "^20.10.6",
+    "@types/ws": "^8.18.1",
+    "@typescript-eslint/eslint-plugin": "^6.17.0",
+    "@typescript-eslint/parser": "^6.17.0",
+    "@vitest/coverage-v8": "^4.0.8",
+    "eslint": "^8.56.0",
+    "happy-dom": "^20.0.10",
+    "node-fetch": "^3.3.2",
+    "tsup": "^8.0.1",
+    "typescript": "^5.3.3",
+    "vitest": "^4.0.8",
+    "ws": "^8.18.3"
+  },
+  "files": [
+    "dist"
+  ]
+}
