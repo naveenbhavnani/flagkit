@@ -1,8 +1,13 @@
 # FlagKit
 
-> Modern feature flag management platform with built-in experimentation
+[![CI](https://github.com/naveenbhavnani/flagkit/actions/workflows/ci.yml/badge.svg)](https://github.com/naveenbhavnani/flagkit/actions/workflows/ci.yml)
+[![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.3-blue.svg)](https://www.typescriptlang.org/)
+[![Node.js](https://img.shields.io/badge/Node.js-20+-green.svg)](https://nodejs.org/)
 
-FlagKit is a feature flag and experimentation platform designed to be simple, affordable, and developer-friendly. Built with TypeScript and modern web technologies, it provides a complete solution for feature management, A/B testing, and progressive rollouts.
+> Modern, self-hosted feature flag management platform built for developers
+
+FlagKit is a feature flag management platform that gives you complete control over feature rollouts and experimentation. Built with TypeScript and modern web technologies, it provides powerful targeting capabilities, type-safe SDKs, and a clean developer experience.
 
 ## 🎯 Project Vision
 
@@ -16,56 +21,106 @@ FlagKit aims to solve the common pain points of existing feature flag platforms:
 
 ## 🏗️ Architecture
 
-This is a **monorepo** managed with **Turborepo** and **pnpm workspaces**.
+```
+┌─────────────────────────────────────────────────────────────┐
+│                     FlagKit Platform                        │
+├─────────────────────────────────────────────────────────────┤
+│                                                             │
+│  ┌──────────────┐    ┌──────────────┐    ┌──────────────┐ │
+│  │   Next.js    │    │   Fastify    │    │  PostgreSQL  │ │
+│  │     Web      │◄───┤      API     │◄───┤   Database   │ │
+│  │  Dashboard   │    │   + Auth     │    │              │ │
+│  └──────────────┘    └──────┬───────┘    └──────────────┘ │
+│                             │                              │
+│                             │ SDK Endpoints                │
+│                             ▼                              │
+│                  ┌──────────────────────┐                  │
+│                  │  Client Applications │                  │
+│                  ├──────────────────────┤                  │
+│                  │  @flagkit/sdk-js     │                  │
+│                  │  @flagkit/sdk-react  │                  │
+│                  └──────────────────────┘                  │
+└─────────────────────────────────────────────────────────────┘
+```
+
+This is a **monorepo** managed with **pnpm workspaces**.
 
 ### Project Structure
 
 ```
 flagkit/
 ├── apps/
-│   ├── web/          # Next.js 14 frontend (App Router)
-│   └── api/          # Fastify backend API
+│   ├── api/              # Fastify backend API
+│   │   ├── src/
+│   │   │   ├── routes/   # API endpoints
+│   │   │   ├── services/ # Business logic & targeting
+│   │   │   ├── types/    # Type definitions
+│   │   │   └── utils/    # Utilities & middleware
+│   │   └── prisma/       # Database schema & migrations
+│   │
+│   └── web/              # Next.js 14 dashboard (App Router)
+│       ├── src/
+│       │   ├── app/      # App Router pages
+│       │   ├── components/ # React components
+│       │   ├── lib/      # Utilities
+│       │   └── stores/   # Zustand stores
+│       └── package.json
+│
 ├── packages/
-│   ├── database/     # Prisma schema & client
-│   ├── types/        # Shared TypeScript types
-│   ├── config/       # Shared configs (TypeScript, ESLint)
-│   ├── sdk-core/     # Core SDK logic
-│   ├── sdk-node/     # Node.js SDK (server-side)
-│   ├── sdk-react/    # React SDK (client-side)
-│   ├── sdk-js/       # Vanilla JS SDK
-│   └── ui/           # Shared UI components
-└── docs/             # Documentation
+│   ├── sdk-js/           # JavaScript/TypeScript SDK
+│   │   ├── src/
+│   │   │   ├── client.ts # Main SDK client
+│   │   │   ├── types.ts  # Type definitions
+│   │   │   └── index.ts  # Public exports
+│   │   └── README.md
+│   │
+│   ├── sdk-react/        # React SDK with hooks
+│   │   ├── src/
+│   │   │   ├── provider.tsx # Context provider
+│   │   │   ├── hooks.ts  # React hooks
+│   │   │   └── index.ts  # Public exports
+│   │   └── README.md
+│   │
+│   └── config/           # Shared TypeScript config
+│
+└── package.json          # Root dependencies
 ```
 
 ### Tech Stack
 
-**Backend:**
-- **Fastify** - High-performance Node.js framework
-- **PostgreSQL** - Primary database (via Prisma)
-- **Redis** - Caching and real-time updates
-- **Zod** - Runtime type validation
+**Backend (apps/api):**
+- **Runtime**: Node.js 20+
+- **Framework**: Fastify 4
+- **Database**: PostgreSQL with Prisma ORM
+- **Authentication**: JWT tokens + SDK key validation
+- **Validation**: Zod schemas
+- **Language**: TypeScript
 
-**Frontend:**
-- **Next.js 14** - React framework with App Router
-- **Tailwind CSS** - Utility-first CSS
-- **shadcn/ui** - Re-usable component library
-- **Zustand** - State management
-- **TanStack Query** - Data fetching and caching
+**Frontend (apps/web):**
+- **Framework**: Next.js 14 (App Router)
+- **UI Library**: React 18
+- **State Management**: Zustand
+- **Styling**: Tailwind CSS
+- **Components**: shadcn/ui
+- **Language**: TypeScript
 
-**Infrastructure:**
-- **Vercel** - Frontend hosting
-- **Railway/Render** - Backend hosting
-- **Neon/Supabase** - Managed PostgreSQL
-- **Upstash** - Managed Redis
+**SDKs (packages/):**
+- **@flagkit/sdk-js**: JavaScript/TypeScript SDK with polling & events
+- **@flagkit/sdk-react**: React hooks and context provider
+- **Build Tool**: tsup (fast TypeScript bundler)
+
+**Development:**
+- **Package Manager**: pnpm (monorepo with workspaces)
+- **Database Tools**: Prisma CLI, migrations
+- **Node Version**: 20.x
 
 ## 🚀 Getting Started
 
 ### Prerequisites
 
-- **Node.js** 18+
+- **Node.js** 20+
 - **pnpm** 8+
-- **PostgreSQL** (local or hosted)
-- **Redis** (optional for development)
+- **PostgreSQL** 14+ (local or hosted)
 
 ### Installation
 
@@ -86,152 +141,248 @@ pnpm install
 
 ```bash
 # Backend
-cp apps/api/.env.example apps/api/.env
-# Edit apps/api/.env with your database credentials
+cd apps/api
+cp .env.example .env
+# Edit .env with your database credentials and JWT secret
 
 # Frontend
-cp apps/web/.env.example apps/web/.env
+cd apps/web
+cp .env.example .env.local
+# Edit .env.local with API URL
 ```
 
 4. **Setup the database**
 
 ```bash
-# Generate Prisma client
-pnpm db:generate
+cd apps/api
 
-# Push schema to database (development)
-pnpm db:push
-
-# Or run migrations (production)
-pnpm db:migrate
+# Run migrations
+pnpm prisma migrate dev
 
 # Seed database with demo data
-cd packages/database
-pnpm db:seed
+pnpm prisma db seed
 ```
 
 5. **Start development servers**
 
 ```bash
-# Start all apps in development mode
-pnpm dev
+# Terminal 1 - API Server
+cd apps/api
+pnpm dev    # Runs on http://localhost:3001
 
-# Or start individually
-cd apps/api && pnpm dev    # API at http://localhost:3001
-cd apps/web && pnpm dev    # Web at http://localhost:3000
+# Terminal 2 - Web Dashboard
+cd apps/web
+pnpm dev    # Runs on http://localhost:3000
+```
+
+6. **Login to Dashboard**
+
+Default credentials (from seed data):
+- **Email**: admin@example.com
+- **Password**: admin123
+
+**Want a guided walkthrough?** Check out the [End-to-End Demo Guide](./DEMO.md) for a complete tutorial including building a demo React app with targeting rules.
+
+### Quick SDK Usage
+
+Install the SDK in your application:
+
+```bash
+npm install @flagkit/sdk-react
+```
+
+Use in your React app:
+
+```tsx
+import { FlagKitProvider, useBooleanFlag } from '@flagkit/sdk-react';
+
+function App() {
+  return (
+    <FlagKitProvider config={{ sdkKey: 'your-sdk-key' }}>
+      <MyApp />
+    </FlagKitProvider>
+  );
+}
+
+function MyComponent() {
+  const showNewFeature = useBooleanFlag('new-feature', false);
+  return showNewFeature ? <NewFeature /> : <OldFeature />;
+}
 ```
 
 ## 📚 Development Workflow
 
-### Available Commands
+### Common Commands
 
 ```bash
 # Development
-pnpm dev              # Start all apps in dev mode
-pnpm build            # Build all apps
-pnpm lint             # Lint all packages
-pnpm test             # Run all tests
-pnpm format           # Format code with Prettier
+cd apps/api && pnpm dev     # Start API server
+cd apps/web && pnpm dev     # Start web dashboard
+
+# Build
+cd packages/sdk-js && pnpm build      # Build JavaScript SDK
+cd packages/sdk-react && pnpm build   # Build React SDK
 
 # Database
-pnpm db:generate      # Generate Prisma client
-pnpm db:push          # Push schema changes (dev)
-pnpm db:migrate       # Create and run migrations
-pnpm db:studio        # Open Prisma Studio
+cd apps/api
+pnpm prisma generate        # Generate Prisma client
+pnpm prisma migrate dev     # Create and run migrations
+pnpm prisma studio          # Open Prisma Studio
+pnpm prisma db seed         # Seed database
 
-# Cleanup
-pnpm clean            # Remove build artifacts
+# Lint
+cd apps/api && pnpm lint    # Lint API code
+cd apps/web && pnpm lint    # Lint web code
+```
+
+### Environment Variables
+
+**apps/api/.env**:
+```env
+DATABASE_URL="postgresql://user:password@localhost:5432/flagkit"
+JWT_SECRET="your-secret-key"
+PORT=3001
+```
+
+**apps/web/.env.local**:
+```env
+NEXT_PUBLIC_API_URL=http://localhost:3001
 ```
 
 ### Working with the Monorepo
 
-- Each package/app is independent with its own `package.json`
+- Each package/app has its own `package.json`
 - Shared dependencies are hoisted to root `node_modules`
-- Use workspace protocol for internal dependencies: `"@flagkit/types": "workspace:*"`
-- Turborepo handles build caching and task orchestration
+- Internal dependencies use workspace protocol: `"@flagkit/sdk-js": "workspace:*"`
+- Build SDKs before using them in development
 
-## 🗺️ Development Roadmap
+## ✅ Current Features
 
-### Phase 1: MVP (Current - Months 1-3)
+### Core Platform
+- ✅ **Authentication System**: JWT-based auth with login/register
+- ✅ **Organization Management**: Multi-tenant architecture with isolation
+- ✅ **Project Management**: Group related flags into projects
+- ✅ **Environment Support**: Dev, staging, production environments per project
+- ✅ **Flag CRUD**: Create, read, update, delete flags with variations
+- ✅ **Flag Types**: Boolean, string, number, and JSON flag values
 
-- [x] Project scaffolding and monorepo setup
-- [x] Database schema with Prisma
-- [x] Basic backend API structure
-- [x] Frontend shell with Next.js
-- [ ] Authentication system (email/password + OAuth)
-- [ ] Organization/Project/Environment management
-- [ ] Core flag CRUD operations
-- [ ] Basic targeting and rollouts
-- [ ] Node.js & React SDKs
-- [ ] Basic dashboard UI
+### Targeting & Rollouts
+- ✅ **Targeting Rules Engine**: Complex user targeting with conditions
+- ✅ **14 Condition Operators**: equals, notEquals, contains, in, greaterThan, matches (regex), etc.
+- ✅ **AND/OR Logic**: Combine conditions with configurable logic
+- ✅ **Percentage Rollouts**: Per-rule and global rollout percentages
+- ✅ **Stable Bucketing**: djb2 hash algorithm for consistent user assignment
+- ✅ **User Context**: Target based on userId and custom attributes
 
-### Phase 2: Enhancement (Months 4-6)
+### Client SDKs
+- ✅ **JavaScript SDK (@flagkit/sdk-js)**:
+  - Automatic polling with configurable intervals
+  - Event system (ready, update, error)
+  - Context management
+  - Type-safe flag access
+  - Full TypeScript support
 
-- [ ] A/B testing engine
-- [ ] Statistical analysis
-- [ ] Additional SDKs (Python, Java, JavaScript)
-- [ ] Integrations (Slack, GitHub)
-- [ ] Advanced targeting rules
-- [ ] Analytics dashboard
-- [ ] Audit logs
+- ✅ **React SDK (@flagkit/sdk-react)**:
+  - FlagKitProvider context provider
+  - 7 specialized hooks (useBooleanFlag, useStringFlag, etc.)
+  - Automatic re-rendering on flag changes
+  - Memoized performance
+  - Full TypeScript support
 
-### Phase 3: Enterprise (Months 7-12)
+### Dashboard UI
+- ✅ **Responsive Navigation**: Sidebar with active route highlighting
+- ✅ **Organization Views**: List and manage organizations
+- ✅ **Project Views**: Manage projects and environments
+- ✅ **Flag Management**: Create and configure flags
+- ✅ **Environment Controls**: Per-environment flag configuration
 
+## 🗺️ Roadmap
+
+### Phase 1: MVP Completion (Current)
+- ✅ Core platform architecture
+- ✅ Targeting rules engine
+- ✅ JavaScript & React SDKs
+- 🔄 Complete documentation
+- [ ] Targeting rules UI (currently JSON-based)
+- [ ] Flag change history/audit log
+- [ ] SDK key management UI
+
+### Phase 2: Enhanced Features
+- [ ] Analytics dashboard with evaluation metrics
+- [ ] A/B testing metrics and statistical analysis
+- [ ] Advanced targeting rules UI builder
+- [ ] Webhooks for flag change notifications
+- [ ] Flag dependencies and prerequisites
+- [ ] Segment management UI
+
+### Phase 3: Additional SDKs & Integrations
+- [ ] Python SDK
+- [ ] Go SDK
+- [ ] Mobile SDKs (iOS, Android)
+- [ ] Slack integration
+- [ ] GitHub integration
+- [ ] OpenFeature provider
+
+### Phase 4: Enterprise Features
 - [ ] SSO/SAML authentication
-- [ ] Custom roles & permissions
-- [ ] Approval workflows
-- [ ] Advanced analytics
-- [ ] Self-hosted option
+- [ ] Advanced RBAC with custom roles
+- [ ] Approval workflows for flag changes
 - [ ] SOC 2 compliance
+- [ ] Advanced audit logging
+- [ ] Multi-region deployment
 
-## 📖 Key Features (Planned)
+## 📚 API Endpoints
 
-### Core Features
-- ✅ Multi-variant flags (Boolean, String, Number, JSON)
-- ✅ Environment management (dev, staging, prod)
-- ✅ User targeting and segmentation
-- ✅ Percentage rollouts
-- ✅ RBAC with 5 default roles
+### Authentication
+- `POST /api/auth/register` - User registration
+- `POST /api/auth/login` - User login
 
-### Experimentation
-- 🚧 A/B testing framework
-- 🚧 Statistical significance calculation
-- 🚧 Guardrail metrics
-- 🚧 Winner selection
+### Organizations
+- `GET /api/organizations` - List organizations
+- `POST /api/organizations` - Create organization
+- `GET /api/organizations/:id` - Get organization details
 
-### Developer Experience
-- 🚧 Multiple SDKs (Node, React, Python, Java)
-- 🚧 Local flag evaluation
-- 🚧 Real-time updates via WebSocket
-- 🚧 Comprehensive API documentation
-- 🚧 CLI tool
+### Projects
+- `GET /api/projects` - List projects for organization
+- `POST /api/projects` - Create project
+- `GET /api/projects/:id` - Get project details
 
-### Analytics & Governance
-- 🚧 Flag evaluation analytics
-- 🚧 Audit logs
-- 🚧 Stale flag detection
-- 🚧 Change history
+### Flags
+- `GET /api/flags` - List flags for project
+- `POST /api/flags` - Create flag
+- `GET /api/flags/:id` - Get flag details
+- `PATCH /api/flags/:id/environments/:envId` - Update flag environment config
+
+### SDK Endpoints (Client-Side)
+- `GET /sdk/v1/client/:sdkKey/flags` - Get all flags with optional context
+- `POST /sdk/v1/client/:sdkKey/evaluate/:flagKey` - Evaluate single flag with context
+
+## 📖 Documentation
+
+- [JavaScript SDK Documentation](./packages/sdk-js/README.md)
+- [React SDK Documentation](./packages/sdk-react/README.md)
 
 ## 🤝 Contributing
 
-This is currently a solo project, but contributions are welcome! Please feel free to:
+This is currently a solo project, but contributions are welcome once the core MVP is stable. Feel free to:
 
 1. Open issues for bugs or feature requests
-2. Submit pull requests
-3. Improve documentation
+2. Suggest improvements to documentation
+3. Provide feedback on the developer experience
 
 ## 📝 License
 
-MIT License - see LICENSE file for details
+MIT License
 
-## 🔗 Links
+## 🔗 Resources
 
-- **Documentation**: Coming soon
-- **API Reference**: Coming soon
-- **SDK Documentation**: Coming soon
+- [End-to-End Demo Guide](./DEMO.md) - Complete walkthrough from setup to production
+- [JavaScript SDK Documentation](./packages/sdk-js/README.md) - Complete JS/TS SDK reference
+- [React SDK Documentation](./packages/sdk-react/README.md) - React hooks and provider guide
+- [Deployment Guide](./DEPLOYMENT.md) - Production deployment instructions
 
 ---
 
-**Status**: 🚧 In Active Development
+**Status**: 🚀 MVP Complete - Active Development
 
-Built with ❤️ by Naveen Bhavnani
+Built with ❤️ for developers who need flexible, powerful feature flags

@@ -1,0 +1,60 @@
+# API changes
+api:
+  - changed-files:
+    - any-glob-to-any-file: 'apps/api/**/*'
+
+# Web UI changes
+web:
+  - changed-files:
+    - any-glob-to-any-file: 'apps/web/**/*'
+
+# SDK changes
+sdk:
+  - changed-files:
+    - any-glob-to-any-file:
+      - 'packages/node-sdk/**/*'
+      - 'packages/js-sdk/**/*'
+
+# Database changes
+database:
+  - changed-files:
+    - any-glob-to-any-file:
+      - 'packages/database/**/*'
+      - '**/prisma/**/*'
+
+# Analytics Dashboard changes
+analytics:
+  - changed-files:
+    - any-glob-to-any-file: 'apps/analytics-dashboard/**/*'
+
+# Documentation changes
+documentation:
+  - changed-files:
+    - any-glob-to-any-file:
+      - '**/*.md'
+      - 'docs/**/*'
+
+# Testing changes
+tests:
+  - changed-files:
+    - any-glob-to-any-file:
+      - '**/*.test.ts'
+      - '**/*.test.tsx'
+      - '**/*.spec.ts'
+      - '**/*.spec.tsx'
+      - '**/__tests__/**/*'
+
+# CI/CD changes
+ci-cd:
+  - changed-files:
+    - any-glob-to-any-file:
+      - '.github/**/*'
+      - '**/Dockerfile'
+      - '**/docker-compose*.yml'
+
+# Dependencies
+dependencies:
+  - changed-files:
+    - any-glob-to-any-file:
+      - '**/package.json'
+      - 'pnpm-lock.yaml'
