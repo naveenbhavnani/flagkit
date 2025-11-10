@@ -1,6 +1,5 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { prisma } from '@flagkit/database';
+import { prisma, Environment, Flag, FlagVariation, FlagEnvironmentConfig } from '@flagkit/database';
 import { sdkService } from '../sdk.service';
 
 // Mock the prisma client
@@ -19,13 +18,6 @@ vi.mock('@flagkit/database', () => ({
   },
 }));
 
-// Mock analytics service
-vi.mock('../analytics.service', () => ({
-  AnalyticsService: class {
-    trackEvaluation = vi.fn().mockResolvedValue(undefined);
-  },
-}));
-
 describe('SdkService', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -33,14 +25,14 @@ describe('SdkService', () => {
 
   describe('getEnvironmentBySdkKey', () => {
     it('should return environment for valid client SDK key', async () => {
-      const mockEnvironment = {
+      const mockEnvironment: Partial<Environment> = {
         id: 'env-1',
         name: 'Production',
         key: 'prod',
         projectId: 'proj-1',
       };
 
-      vi.mocked(prisma.environment.findFirst).mockResolvedValue(mockEnvironment as any);
+      vi.mocked(prisma.environment.findFirst).mockResolvedValue(mockEnvironment as Environment);
 
       const result = await sdkService.getEnvironmentBySdkKey('client-sdk-key', 'client');
 
@@ -57,14 +49,14 @@ describe('SdkService', () => {
     });
 
     it('should return environment for valid server SDK key', async () => {
-      const mockEnvironment = {
+      const mockEnvironment: Partial<Environment> = {
         id: 'env-1',
         name: 'Production',
         key: 'prod',
         projectId: 'proj-1',
       };
 
-      vi.mocked(prisma.environment.findFirst).mockResolvedValue(mockEnvironment as any);
+      vi.mocked(prisma.environment.findFirst).mockResolvedValue(mockEnvironment as Environment);
 
       const result = await sdkService.getEnvironmentBySdkKey('server-sdk-key', 'server');
 
@@ -91,14 +83,19 @@ describe('SdkService', () => {
 
   describe('getAllFlags', () => {
     it('should return all flags for environment', async () => {
-      const mockEnvironment = {
+      const mockEnvironment: Partial<Environment> = {
         id: 'env-1',
         name: 'Production',
         key: 'prod',
         projectId: 'proj-1',
       };
 
-      const mockFlags = [
+      type FlagWithRelations = Flag & {
+        variations: Partial<FlagVariation>[];
+        envConfigs: Partial<FlagEnvironmentConfig>[];
+      };
+
+      const mockFlags: Partial<FlagWithRelations>[] = [
         {
           id: 'flag-1',
           key: 'feature-flag',
@@ -119,8 +116,8 @@ describe('SdkService', () => {
         },
       ];
 
-      vi.mocked(prisma.environment.findFirst).mockResolvedValue(mockEnvironment as any);
-      vi.mocked(prisma.flag.findMany).mockResolvedValue(mockFlags as any);
+      vi.mocked(prisma.environment.findFirst).mockResolvedValue(mockEnvironment as Environment);
+      vi.mocked(prisma.flag.findMany).mockResolvedValue(mockFlags as Flag[]);
 
       const result = await sdkService.getAllFlags('client-sdk-key', 'client');
 
@@ -136,14 +133,19 @@ describe('SdkService', () => {
     });
 
     it('should return disabled flags correctly', async () => {
-      const mockEnvironment = {
+      const mockEnvironment: Partial<Environment> = {
         id: 'env-1',
         name: 'Production',
         key: 'prod',
         projectId: 'proj-1',
       };
 
-      const mockFlags = [
+      type FlagWithRelations = Flag & {
+        variations: Partial<FlagVariation>[];
+        envConfigs: Partial<FlagEnvironmentConfig>[];
+      };
+
+      const mockFlags: Partial<FlagWithRelations>[] = [
         {
           id: 'flag-1',
           key: 'disabled-flag',
@@ -164,8 +166,8 @@ describe('SdkService', () => {
         },
       ];
 
-      vi.mocked(prisma.environment.findFirst).mockResolvedValue(mockEnvironment as any);
-      vi.mocked(prisma.flag.findMany).mockResolvedValue(mockFlags as any);
+      vi.mocked(prisma.environment.findFirst).mockResolvedValue(mockEnvironment as Environment);
+      vi.mocked(prisma.flag.findMany).mockResolvedValue(mockFlags as Flag[]);
 
       const result = await sdkService.getAllFlags('client-sdk-key', 'client');
 
@@ -176,14 +178,19 @@ describe('SdkService', () => {
     });
 
     it('should handle flags without configuration', async () => {
-      const mockEnvironment = {
+      const mockEnvironment: Partial<Environment> = {
         id: 'env-1',
         name: 'Production',
         key: 'prod',
         projectId: 'proj-1',
       };
 
-      const mockFlags = [
+      type FlagWithRelations = Flag & {
+        variations: Partial<FlagVariation>[];
+        envConfigs: Partial<FlagEnvironmentConfig>[];
+      };
+
+      const mockFlags: Partial<FlagWithRelations>[] = [
         {
           id: 'flag-1',
           key: 'no-config-flag',
@@ -196,8 +203,8 @@ describe('SdkService', () => {
         },
       ];
 
-      vi.mocked(prisma.environment.findFirst).mockResolvedValue(mockEnvironment as any);
-      vi.mocked(prisma.flag.findMany).mockResolvedValue(mockFlags as any);
+      vi.mocked(prisma.environment.findFirst).mockResolvedValue(mockEnvironment as Environment);
+      vi.mocked(prisma.flag.findMany).mockResolvedValue(mockFlags as Flag[]);
 
       const result = await sdkService.getAllFlags('client-sdk-key', 'client');
 
@@ -218,14 +225,19 @@ describe('SdkService', () => {
 
   describe('evaluateFlag', () => {
     it('should evaluate enabled flag with default variation', async () => {
-      const mockEnvironment = {
+      const mockEnvironment: Partial<Environment> = {
         id: 'env-1',
         name: 'Production',
         key: 'prod',
         projectId: 'proj-1',
       };
 
-      const mockFlag = {
+      type FlagWithRelations = Flag & {
+        variations: Partial<FlagVariation>[];
+        envConfigs: Partial<FlagEnvironmentConfig>[];
+      };
+
+      const mockFlag: Partial<FlagWithRelations> = {
         id: 'flag-1',
         key: 'test-flag',
         status: 'ACTIVE',
@@ -244,8 +256,8 @@ describe('SdkService', () => {
         ],
       };
 
-      vi.mocked(prisma.environment.findFirst).mockResolvedValue(mockEnvironment as any);
-      vi.mocked(prisma.flag.findFirst).mockResolvedValue(mockFlag as any);
+      vi.mocked(prisma.environment.findFirst).mockResolvedValue(mockEnvironment as Environment);
+      vi.mocked(prisma.flag.findFirst).mockResolvedValue(mockFlag as Flag);
 
       const result = await sdkService.evaluateFlag('client-key', 'client', 'test-flag');
 
@@ -258,14 +270,19 @@ describe('SdkService', () => {
     });
 
     it('should evaluate disabled flag correctly', async () => {
-      const mockEnvironment = {
+      const mockEnvironment: Partial<Environment> = {
         id: 'env-1',
         name: 'Production',
         key: 'prod',
         projectId: 'proj-1',
       };
 
-      const mockFlag = {
+      type FlagWithRelations = Flag & {
+        variations: Partial<FlagVariation>[];
+        envConfigs: Partial<FlagEnvironmentConfig>[];
+      };
+
+      const mockFlag: Partial<FlagWithRelations> = {
         id: 'flag-1',
         key: 'test-flag',
         status: 'ACTIVE',
@@ -284,8 +301,8 @@ describe('SdkService', () => {
         ],
       };
 
-      vi.mocked(prisma.environment.findFirst).mockResolvedValue(mockEnvironment as any);
-      vi.mocked(prisma.flag.findFirst).mockResolvedValue(mockFlag as any);
+      vi.mocked(prisma.environment.findFirst).mockResolvedValue(mockEnvironment as Environment);
+      vi.mocked(prisma.flag.findFirst).mockResolvedValue(mockFlag as Flag);
 
       const result = await sdkService.evaluateFlag('client-key', 'client', 'test-flag');
 
@@ -297,14 +314,19 @@ describe('SdkService', () => {
     });
 
     it('should evaluate flag with targeting rules', async () => {
-      const mockEnvironment = {
+      const mockEnvironment: Partial<Environment> = {
         id: 'env-1',
         name: 'Production',
         key: 'prod',
         projectId: 'proj-1',
       };
 
-      const mockFlag = {
+      type FlagWithRelations = Flag & {
+        variations: Partial<FlagVariation>[];
+        envConfigs: Partial<FlagEnvironmentConfig>[];
+      };
+
+      const mockFlag: Partial<FlagWithRelations> = {
         id: 'flag-1',
         key: 'test-flag',
         status: 'ACTIVE',
@@ -336,8 +358,8 @@ describe('SdkService', () => {
         ],
       };
 
-      vi.mocked(prisma.environment.findFirst).mockResolvedValue(mockEnvironment as any);
-      vi.mocked(prisma.flag.findFirst).mockResolvedValue(mockFlag as any);
+      vi.mocked(prisma.environment.findFirst).mockResolvedValue(mockEnvironment as Environment);
+      vi.mocked(prisma.flag.findFirst).mockResolvedValue(mockFlag as Flag);
 
       const result = await sdkService.evaluateFlag(
         'client-key',
@@ -354,14 +376,14 @@ describe('SdkService', () => {
     });
 
     it('should return null for non-existent flag', async () => {
-      const mockEnvironment = {
+      const mockEnvironment: Partial<Environment> = {
         id: 'env-1',
         name: 'Production',
         key: 'prod',
         projectId: 'proj-1',
       };
 
-      vi.mocked(prisma.environment.findFirst).mockResolvedValue(mockEnvironment as any);
+      vi.mocked(prisma.environment.findFirst).mockResolvedValue(mockEnvironment as Environment);
       vi.mocked(prisma.flag.findFirst).mockResolvedValue(null);
 
       const result = await sdkService.evaluateFlag('client-key', 'client', 'non-existent');
@@ -378,14 +400,19 @@ describe('SdkService', () => {
     });
 
     it('should handle flag without configuration', async () => {
-      const mockEnvironment = {
+      const mockEnvironment: Partial<Environment> = {
         id: 'env-1',
         name: 'Production',
         key: 'prod',
         projectId: 'proj-1',
       };
 
-      const mockFlag = {
+      type FlagWithRelations = Flag & {
+        variations: Partial<FlagVariation>[];
+        envConfigs: Partial<FlagEnvironmentConfig>[];
+      };
+
+      const mockFlag: Partial<FlagWithRelations> = {
         id: 'flag-1',
         key: 'test-flag',
         status: 'ACTIVE',
@@ -396,8 +423,8 @@ describe('SdkService', () => {
         envConfigs: [], // No config
       };
 
-      vi.mocked(prisma.environment.findFirst).mockResolvedValue(mockEnvironment as any);
-      vi.mocked(prisma.flag.findFirst).mockResolvedValue(mockFlag as any);
+      vi.mocked(prisma.environment.findFirst).mockResolvedValue(mockEnvironment as Environment);
+      vi.mocked(prisma.flag.findFirst).mockResolvedValue(mockFlag as Flag);
 
       const result = await sdkService.evaluateFlag('client-key', 'client', 'test-flag');
 
