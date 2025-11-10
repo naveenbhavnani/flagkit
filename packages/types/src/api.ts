@@ -1,4 +1,5 @@
 // API route types and request/response schemas
+import { JsonValue, FlagValue } from './flags';
 
 export interface ApiRoute {
   path: string;
@@ -33,13 +34,13 @@ export interface AuthResponse {
 export interface SdkEvaluationRequest {
   context: {
     userId?: string;
-    attributes?: Record<string, any>;
+    attributes?: Record<string, JsonValue>;
   };
   flags?: string[]; // Optional: specific flags to evaluate
 }
 
 export interface SdkEvaluationResponse {
-  flags: Record<string, any>;
+  flags: Record<string, FlagValue>;
   timestamp: string;
 }
 
@@ -47,7 +48,7 @@ export interface SdkEvaluationResponse {
 export interface WebhookPayload {
   event: string;
   timestamp: string;
-  data: any;
+  data: JsonValue;
   organizationId: string;
   projectId?: string;
 }
