@@ -454,3 +454,65 @@ model Comment {
   @@index([resourceType, resourceId])
   @@index([userId])
 }
+
+// ============================================
+// Analytics & Metrics
+// ============================================
+
+model FlagEvaluation {
+  id              String   @id @default(cuid())
+
+  flagId          String
+  environmentId   String
+
+  variationKey    String   // Which variation was served
+  userId          String?  // End user ID (from SDK context)
+
+  // Request context
+  sdkType         String?  // "client" or "server"
+  sdkVersion      String?
+
+  // Evaluation reason
+  reason          String   // "DEFAULT", "TARGETING", "ROLLOUT", "DISABLED"
+
+  createdAt       DateTime @default(now())
+
+  @@index([flagId, createdAt])
+  @@index([environmentId, createdAt])
+  @@index([flagId, environmentId, createdAt])
+}
+
+enum MetricInterval {
+  HOUR
+  DAY
+}
+
+model FlagMetrics {
+  id              String   @id @default(cuid())
+
+  flagId          String
+  environmentId   String
+
+  // Time bucket
+  interval        MetricInterval
+  timestamp       DateTime // Start of the time bucket
+
+  // Aggregated counts
+  totalEvaluations Int     @default(0)
+
+  // Variation breakdown (JSON: { "variationKey": count })
+  variationCounts  Json
+
+  // Reason breakdown (JSON: { "reason": count })
+  reasonCounts     Json
+
+  // Unique users
+  uniqueUsers      Int     @default(0)
+
+  updatedAt        DateTime @updatedAt
+
+  @@unique([flagId, environmentId, interval, timestamp])
+  @@index([flagId, interval, timestamp])
+  @@index([environmentId, interval, timestamp])
+  @@index([timestamp])
+}
