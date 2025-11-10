@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/stores/auth.store';
 import { useOrganizationStore } from '@/stores/organization.store';
+import { AppLayout } from '@/components/layout/AppLayout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import {
@@ -21,7 +22,7 @@ import { Plus } from 'lucide-react';
 
 export default function OrganizationsPage() {
   const router = useRouter();
-  const { isAuthenticated, user, logout } = useAuthStore();
+  const { isAuthenticated } = useAuthStore();
   const { organizations, isLoading, error, loadOrganizations, createOrganization } =
     useOrganizationStore();
 
@@ -39,11 +40,6 @@ export default function OrganizationsPage() {
 
     loadOrganizations();
   }, [isAuthenticated, router, loadOrganizations]);
-
-  const handleLogout = () => {
-    logout();
-    router.push('/login');
-  };
 
   const generateSlug = (name: string) => {
     return name
@@ -92,22 +88,8 @@ export default function OrganizationsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800">
-      <header className="border-b bg-white dark:bg-slate-900">
-        <div className="container mx-auto px-4 py-4 flex items-center justify-between">
-          <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-            FlagKit
-          </h1>
-          <div className="flex items-center gap-4">
-            <span className="text-sm text-muted-foreground">{user?.email}</span>
-            <Button onClick={handleLogout} variant="outline" size="sm">
-              Logout
-            </Button>
-          </div>
-        </div>
-      </header>
-
-      <main className="container mx-auto px-4 py-8">
+    <AppLayout>
+      <div className="container mx-auto px-4 py-8">
         <div className="flex items-center justify-between mb-8">
           <div>
             <h2 className="text-3xl font-bold mb-2">Organizations</h2>
@@ -231,7 +213,7 @@ export default function OrganizationsPage() {
             ))}
           </div>
         )}
-      </main>
-    </div>
+      </div>
+    </AppLayout>
   );
 }

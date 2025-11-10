@@ -5,12 +5,17 @@ import { useRouter, useParams } from 'next/navigation';
 import { useAuthStore } from '@/stores/auth.store';
 import { useFlagStore } from '@/stores/flag.store';
 import { useEnvironmentStore } from '@/stores/environment.store';
+import { AppLayout } from '@/components/layout/AppLayout';
+import { EnvironmentConfigDialog } from '@/components/flags/EnvironmentConfigDialog';
+import { AuditLogViewer } from '@/components/flags/AuditLogViewer';
+import { AnalyticsDashboard } from '@/components/flags/AnalyticsDashboard';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, Flag, Settings } from 'lucide-react';
+import { ArrowLeft, Flag, Settings as SettingsIcon } from 'lucide-react';
+import type { TargetingRule } from '@/types/targeting.types';
 
 export default function FlagDetailPage() {
   const router = useRouter();
@@ -18,11 +23,13 @@ export default function FlagDetailPage() {
   const flagId = params.id as string;
 
   const { isAuthenticated } = useAuthStore();
-  const { currentFlag, loadFlag, flagConfigs, loadFlagConfigs, toggleFlag } = useFlagStore();
+  const { currentFlag, loadFlag, flagConfigs, loadFlagConfigs, toggleFlag, updateFlagConfig } = useFlagStore();
   const { environments, loadProjectEnvironments } = useEnvironmentStore();
 
   const [toggleStates, setToggleStates] = useState<Record<string, boolean>>({});
   const [isToggling, setIsToggling] = useState<Record<string, boolean>>({});
+  const [configDialogOpen, setConfigDialogOpen] = useState(false);
+  const [selectedEnvironment, setSelectedEnvironment] = useState<string | null>(null);
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -59,13 +66,13 @@ export default function FlagDetailPage() {
 
   if (!currentFlag) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800">
+      <AppLayout>
         <div className="container mx-auto px-4 py-8">
           <div className="text-center py-12">
             <p className="text-muted-foreground">Loading flag...</p>
           </div>
         </div>
-      </div>
+      </AppLayout>
     );
   }
 
@@ -83,6 +90,35 @@ export default function FlagDetailPage() {
     setIsToggling((prev) => ({ ...prev, [environmentId]: false }));
   };
 
+  const handleOpenConfig = (environmentId: string) => {
+    setSelectedEnvironment(environmentId);
+    setConfigDialogOpen(true);
+  };
+
+  const handleCloseConfig = () => {
+    setConfigDialogOpen(false);
+    setSelectedEnvironment(null);
+  };
+
+  const handleSaveConfig = async (config: {
+    enabled: boolean;
+    defaultVariationKey: string | null;
+    targetingRules: TargetingRule[];
+    rolloutPercentage: number | null;
+  }) => {
+    if (!selectedEnvironment) return;
+
+    await updateFlagConfig(flagId, selectedEnvironment, {
+      enabled: config.enabled,
+      defaultVariationKey: config.defaultVariationKey || undefined,
+      targetingRules: config.targetingRules,
+      rolloutPercentage: config.rolloutPercentage || undefined,
+    });
+
+    // Reload configs to get updated data
+    await loadFlagConfigs(flagId);
+  };
+
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'ACTIVE':
@@ -97,9 +133,10 @@ export default function FlagDetailPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800">
-      <header className="border-b bg-white dark:bg-slate-900">
-        <div className="container mx-auto px-4 py-4">
+    <AppLayout>
+      <div className="container mx-auto px-4 py-8">
+        {/* Page Header */}
+        <div className="mb-8">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
               <Button variant="ghost" size="sm" onClick={() => router.back()}>
@@ -111,7 +148,7 @@ export default function FlagDetailPage() {
                   <Flag className="h-6 w-6 text-primary" />
                 </div>
                 <div>
-                  <h1 className="text-2xl font-bold">{currentFlag.name}</h1>
+                  <h1 className="text-3xl font-bold">{currentFlag.name}</h1>
                   <div className="flex items-center gap-2 mt-1">
                     <code className="text-sm font-mono bg-muted px-2 py-1 rounded">
                       {currentFlag.key}
@@ -124,14 +161,11 @@ export default function FlagDetailPage() {
               </div>
             </div>
             <Button variant="outline" size="sm">
-              <Settings className="h-4 w-4 mr-2" />
+              <SettingsIcon className="h-4 w-4 mr-2" />
               Settings
             </Button>
           </div>
         </div>
-      </header>
-
-      <main className="container mx-auto px-4 py-8">
         {/* Flag Info */}
         <div className="mb-8">
           <Card>
@@ -224,6 +258,7 @@ export default function FlagDetailPage() {
           {environments.length > 0 ? (
             <div className="grid gap-4">
               {environments.map((env) => {
+                const config = flagConfigs[flagId]?.find((c) => c.environmentId === env.id);
                 const isEnabled = toggleStates[env.id] || false;
                 const isLoading = isToggling[env.id] || false;
 
@@ -260,9 +295,31 @@ export default function FlagDetailPage() {
                             onCheckedChange={(checked) => handleToggle(env.id, checked)}
                             disabled={isLoading}
                           />
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleOpenConfig(env.id)}
+                          >
+                            <SettingsIcon className="h-4 w-4 mr-2" />
+                            Configure
+                          </Button>
                         </div>
                       </div>
                     </CardHeader>
+                    {config && (config.targetingRules as unknown as TargetingRule[])?.length > 0 && (
+                      <CardContent>
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                          <Badge variant="secondary" className="text-xs">
+                            {(config.targetingRules as unknown as TargetingRule[]).length} targeting rule(s)
+                          </Badge>
+                          {config.rolloutPercentage !== null && (
+                            <Badge variant="secondary" className="text-xs">
+                              {config.rolloutPercentage}% global rollout
+                            </Badge>
+                          )}
+                        </div>
+                      </CardContent>
+                    )}
                   </Card>
                 );
               })}
@@ -278,7 +335,48 @@ export default function FlagDetailPage() {
             </Card>
           )}
         </div>
-      </main>
-    </div>
+
+        {/* Analytics Dashboard */}
+        <div className="mb-8">
+          <h2 className="text-xl font-bold mb-4">Analytics & Metrics</h2>
+          <AnalyticsDashboard flagId={flagId} />
+        </div>
+
+        {/* Change History */}
+        <div className="mb-8">
+          <h2 className="text-xl font-bold mb-4">Change History</h2>
+          <AuditLogViewer flagId={flagId} />
+        </div>
+
+        {/* Environment Configuration Dialog */}
+        {selectedEnvironment && (
+          <EnvironmentConfigDialog
+            isOpen={configDialogOpen}
+            onClose={handleCloseConfig}
+            environmentName={
+              environments.find((e) => e.id === selectedEnvironment)?.name || 'Environment'
+            }
+            variations={currentFlag.variations.map((v) => ({
+              key: v.key,
+              name: v.name,
+              value: String(v.value),
+            }))}
+            initialConfig={{
+              enabled: flagConfigs[flagId]?.find((c) => c.environmentId === selectedEnvironment)
+                ?.enabled,
+              defaultVariationKey: flagConfigs[flagId]?.find(
+                (c) => c.environmentId === selectedEnvironment
+              )?.defaultVariationKey,
+              targetingRules: (flagConfigs[flagId]?.find((c) => c.environmentId === selectedEnvironment)
+                ?.targetingRules as unknown as TargetingRule[]) || [],
+              rolloutPercentage: flagConfigs[flagId]?.find(
+                (c) => c.environmentId === selectedEnvironment
+              )?.rolloutPercentage,
+            }}
+            onSave={handleSaveConfig}
+          />
+        )}
+      </div>
+    </AppLayout>
   );
 }

@@ -12,6 +12,10 @@ interface OrganizationState {
   loadOrganizations: () => Promise<void>;
   loadOrganization: (id: string) => Promise<void>;
   createOrganization: (data: CreateOrganizationInput) => Promise<Organization | null>;
+  updateOrganization: (
+    id: string,
+    data: Partial<CreateOrganizationInput>
+  ) => Promise<Organization | null>;
   setCurrentOrganization: (org: Organization | null) => void;
   clearError: () => void;
 }
@@ -118,6 +122,46 @@ export const useOrganizationStore = create<OrganizationState>((set, get) => ({
     } catch (error) {
       set({
         error: error instanceof Error ? error.message : 'Failed to create organization',
+        isLoading: false,
+      });
+      return null;
+    }
+  },
+
+  updateOrganization: async (id: string, data: Partial<CreateOrganizationInput>) => {
+    const token = authStorage.getToken();
+    if (!token) {
+      set({ error: 'Not authenticated' });
+      return null;
+    }
+
+    set({ isLoading: true, error: null });
+    try {
+      const response = await api.updateOrganization(token, id, data);
+
+      if (response.success && response.data) {
+        const updated = response.data.organization;
+
+        set((state) => ({
+          organizations: state.organizations.map((org) =>
+            org.id === id ? updated : org
+          ),
+          currentOrganization:
+            state.currentOrganization?.id === id ? updated : state.currentOrganization,
+          isLoading: false,
+        }));
+
+        return updated;
+      } else {
+        set({
+          error: response.error?.message || 'Failed to update organization',
+          isLoading: false,
+        });
+        return null;
+      }
+    } catch (error) {
+      set({
+        error: error instanceof Error ? error.message : 'Failed to update organization',
         isLoading: false,
       });
       return null;

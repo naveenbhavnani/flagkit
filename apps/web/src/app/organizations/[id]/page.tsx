@@ -5,6 +5,7 @@ import { useRouter, useParams } from 'next/navigation';
 import { useAuthStore } from '@/stores/auth.store';
 import { useOrganizationStore } from '@/stores/organization.store';
 import { useProjectStore } from '@/stores/project.store';
+import { AppLayout } from '@/components/layout/AppLayout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import {
@@ -54,26 +55,26 @@ export default function OrganizationDetailPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800">
+      <AppLayout>
         <div className="container mx-auto px-4 py-8">
           <div className="text-center py-12">
             <p className="text-muted-foreground">Loading organization...</p>
           </div>
         </div>
-      </div>
+      </AppLayout>
     );
   }
 
   if (error || !currentOrganization) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800">
+      <AppLayout>
         <div className="container mx-auto px-4 py-8">
           <div className="text-center py-12">
             <p className="text-red-500 mb-4">{error || 'Organization not found'}</p>
             <Button onClick={() => router.push('/organizations')}>Back to Organizations</Button>
           </div>
         </div>
-      </div>
+      </AppLayout>
     );
   }
 
@@ -133,9 +134,10 @@ export default function OrganizationDetailPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800">
-      <header className="border-b bg-white dark:bg-slate-900">
-        <div className="container mx-auto px-4 py-4">
+    <AppLayout>
+      <div className="container mx-auto px-4 py-8">
+        {/* Page Header */}
+        <div className="mb-8">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
               <Button
@@ -147,7 +149,7 @@ export default function OrganizationDetailPage() {
                 Back
               </Button>
               <div>
-                <h1 className="text-2xl font-bold">{currentOrganization.name}</h1>
+                <h1 className="text-3xl font-bold">{currentOrganization.name}</h1>
                 <p className="text-sm text-muted-foreground">@{currentOrganization.slug}</p>
               </div>
             </div>
@@ -159,9 +161,6 @@ export default function OrganizationDetailPage() {
             )}
           </div>
         </div>
-      </header>
-
-      <main className="container mx-auto px-4 py-8">
         {/* Organization Info */}
         <div className="grid gap-6 mb-8 md:grid-cols-3">
           <Card>
@@ -369,7 +368,7 @@ export default function OrganizationDetailPage() {
             </CardContent>
           </Card>
         </div>
-      </main>
-    </div>
+      </div>
+    </AppLayout>
   );
 }

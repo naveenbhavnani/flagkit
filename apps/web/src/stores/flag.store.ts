@@ -33,6 +33,16 @@ interface FlagState {
     environmentId: string,
     enabled: boolean
   ) => Promise<FlagEnvironmentConfig | null>;
+  toggleFlagInEnvironment: (
+    flagId: string,
+    environmentId: string,
+    enabled: boolean
+  ) => Promise<FlagEnvironmentConfig | null>;
+  updateFlagEnvironmentConfig: (
+    flagId: string,
+    environmentId: string,
+    data: UpdateFlagConfigInput
+  ) => Promise<FlagEnvironmentConfig | null>;
   clearError: () => void;
 }
 
@@ -329,6 +339,15 @@ export const useFlagStore = create<FlagState>((set) => ({
       });
       return null;
     }
+  },
+
+  // Alias methods for compatibility with tests
+  get toggleFlagInEnvironment() {
+    return this.toggleFlag;
+  },
+
+  get updateFlagEnvironmentConfig() {
+    return this.updateFlagConfig;
   },
 
   clearError: () => set({ error: null }),
