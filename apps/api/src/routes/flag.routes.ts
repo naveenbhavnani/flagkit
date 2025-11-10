@@ -72,7 +72,7 @@ export default async function flagRoutes(server: FastifyInstance) {
     }
 
     try {
-      const flag = await flagService.create(projectId, request.user!.userId, validation.data);
+      const flag = await flagService.create(projectId, request.user!.id, validation.data);
 
       return {
         success: true,
@@ -98,7 +98,7 @@ export default async function flagRoutes(server: FastifyInstance) {
     const { projectId } = request.params;
 
     try {
-      const flags = await flagService.getProjectFlags(projectId, request.user!.userId);
+      const flags = await flagService.getProjectFlags(projectId, request.user!.id);
 
       return {
         success: true,
@@ -124,7 +124,7 @@ export default async function flagRoutes(server: FastifyInstance) {
     const { id } = request.params;
 
     try {
-      const flag = await flagService.getById(id, request.user!.userId);
+      const flag = await flagService.getById(id, request.user!.id);
 
       return {
         success: true,
@@ -164,7 +164,7 @@ export default async function flagRoutes(server: FastifyInstance) {
     }
 
     try {
-      const flag = await flagService.update(id, request.user!.userId, validation.data);
+      const flag = await flagService.update(id, request.user!.id, validation.data);
 
       return {
         success: true,
@@ -191,7 +191,7 @@ export default async function flagRoutes(server: FastifyInstance) {
     const { id } = request.params;
 
     try {
-      await flagService.delete(id, request.user!.userId);
+      await flagService.delete(id, request.user!.id);
 
       return {
         success: true,
@@ -218,7 +218,7 @@ export default async function flagRoutes(server: FastifyInstance) {
     const { id, environmentId } = request.params;
 
     try {
-      const config = await flagService.getEnvironmentConfig(id, environmentId, request.user!.userId);
+      const config = await flagService.getEnvironmentConfig(id, environmentId, request.user!.id);
 
       return {
         success: true,
@@ -260,7 +260,7 @@ export default async function flagRoutes(server: FastifyInstance) {
       const config = await flagService.updateEnvironmentConfig(
         id,
         environmentId,
-        request.user!.userId,
+        request.user!.id,
         validation.data
       );
 
@@ -304,7 +304,7 @@ export default async function flagRoutes(server: FastifyInstance) {
       const config = await flagService.toggleFlagInEnvironment(
         id,
         environmentId,
-        request.user!.userId,
+        request.user!.id,
         validation.data.enabled
       );
 
@@ -332,7 +332,7 @@ export default async function flagRoutes(server: FastifyInstance) {
     const { id } = request.params;
 
     try {
-      const configs = await flagService.getAllEnvironmentConfigs(id, request.user!.userId);
+      const configs = await flagService.getAllEnvironmentConfigs(id, request.user!.id);
 
       return {
         success: true,

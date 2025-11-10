@@ -41,7 +41,7 @@ class EnvironmentService {
     }
 
     // Only OWNER, ADMIN, and PROJECT_ADMIN can manage environments
-    const allowedRoles = [MemberRole.OWNER, MemberRole.ADMIN, MemberRole.PROJECT_ADMIN];
+    const allowedRoles: MemberRole[] = [MemberRole.OWNER, MemberRole.ADMIN, MemberRole.PROJECT_ADMIN];
     if (!allowedRoles.includes(member.role)) {
       throw new Error('Insufficient permissions to manage environments');
     }
@@ -217,16 +217,16 @@ class EnvironmentService {
     const environment = await this.getById(environmentId, userId);
     await this.checkProjectPermission(environment.projectId, userId);
 
-    const { generateCuid } = await import('@paralleldrive/cuid2');
+    const { createId } = await import('@paralleldrive/cuid2');
 
     const updateData: { clientSdkKey?: string; serverSdkKey?: string } = {};
 
     if (keyType === 'client' || keyType === 'both') {
-      updateData.clientSdkKey = generateCuid();
+      updateData.clientSdkKey = createId();
     }
 
     if (keyType === 'server' || keyType === 'both') {
-      updateData.serverSdkKey = generateCuid();
+      updateData.serverSdkKey = createId();
     }
 
     const updated = await prisma.environment.update({

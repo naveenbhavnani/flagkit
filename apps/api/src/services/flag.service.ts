@@ -1,5 +1,6 @@
-import { prisma } from '@flagkit/database';
-import { FlagType, FlagStatus, MemberRole } from '@flagkit/database';
+import { prisma, Prisma } from '@flagkit/database';
+import { FlagType, FlagStatus, MemberRole, AuditAction, AuditResourceType } from '@flagkit/database';
+import { AuditService } from './audit.service';
 
 export interface CreateFlagInput {
   key: string;
@@ -31,6 +32,12 @@ export interface UpdateFlagConfigInput {
 }
 
 class FlagService {
+  private auditService: AuditService;
+
+  constructor() {
+    this.auditService = new AuditService(prisma);
+  }
+
   private async checkProjectPermission(projectId: string, userId: string): Promise<void> {
     const project = await prisma.project.findUnique({
       where: { id: projectId },
@@ -55,7 +62,7 @@ class FlagService {
     }
 
     // VIEWER can read but not create/modify
-    const allowedRoles = [
+    const allowedRoles: MemberRole[] = [
       MemberRole.OWNER,
       MemberRole.ADMIN,
       MemberRole.PROJECT_ADMIN,
@@ -306,6 +313,16 @@ class FlagService {
       }
     }
 
+    // Get current config for audit log
+    const currentConfig = await prisma.flagEnvironmentConfig.findUnique({
+      where: {
+        flagId_environmentId: {
+          flagId,
+          environmentId,
+        },
+      },
+    });
+
     // Upsert the config
     const config = await prisma.flagEnvironmentConfig.upsert({
       where: {
@@ -318,7 +335,7 @@ class FlagService {
         enabled: input.enabled,
         defaultVariationKey: input.defaultVariationKey,
         fallbackVariationKey: input.fallbackVariationKey,
-        targetingRules: input.targetingRules,
+        targetingRules: input.targetingRules as Prisma.InputJsonValue,
         rolloutPercentage: input.rolloutPercentage,
       },
       create: {
@@ -327,9 +344,49 @@ class FlagService {
         enabled: input.enabled ?? false,
         defaultVariationKey: input.defaultVariationKey || flag.variations[0]?.key || 'false',
         fallbackVariationKey: input.fallbackVariationKey || flag.variations[0]?.key || 'false',
-        targetingRules: input.targetingRules,
+        targetingRules: input.targetingRules as Prisma.InputJsonValue,
         rolloutPercentage: input.rolloutPercentage,
       },
+    });
+
+    // Log the change
+    await this.auditService.log({
+      action: currentConfig ? AuditAction.UPDATE : AuditAction.CREATE,
+      resourceType: AuditResourceType.FLAG,
+      resourceId: flagId,
+      userId,
+      organizationId: flag.project.organization.id,
+      changes: {
+        before: currentConfig,
+        after: config,
+        environmentId,
+        environmentName: environment.name,
+      },
+      metadata: {
+        flagKey: flag.key,
+        flagName: flag.name,
+        environmentKey: environment.key,
+      },
+    });
+
+    // Log flag-specific change
+    await this.auditService.logFlagChange({
+      flagId,
+      userId,
+      changeType: 'CONFIG_UPDATED',
+      before: currentConfig ? {
+        enabled: currentConfig.enabled,
+        defaultVariationKey: currentConfig.defaultVariationKey,
+        targetingRules: currentConfig.targetingRules,
+        rolloutPercentage: currentConfig.rolloutPercentage,
+      } : undefined,
+      after: {
+        enabled: config.enabled,
+        defaultVariationKey: config.defaultVariationKey,
+        targetingRules: config.targetingRules,
+        rolloutPercentage: config.rolloutPercentage,
+      },
+      comment: `Updated configuration for ${environment.name} environment`,
     });
 
     return config;

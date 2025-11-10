@@ -51,7 +51,7 @@ export default async function environmentRoutes(server: FastifyInstance) {
     try {
       const environment = await environmentService.create(
         projectId,
-        request.user!.userId,
+        request.user!.id,
         validation.data
       );
 
@@ -81,7 +81,7 @@ export default async function environmentRoutes(server: FastifyInstance) {
     try {
       const environments = await environmentService.getProjectEnvironments(
         projectId,
-        request.user!.userId
+        request.user!.id
       );
 
       return {
@@ -108,7 +108,7 @@ export default async function environmentRoutes(server: FastifyInstance) {
     const { id } = request.params;
 
     try {
-      const environment = await environmentService.getById(id, request.user!.userId);
+      const environment = await environmentService.getById(id, request.user!.id);
 
       return {
         success: true,
@@ -149,7 +149,7 @@ export default async function environmentRoutes(server: FastifyInstance) {
     }
 
     try {
-      const environment = await environmentService.update(id, request.user!.userId, validation.data);
+      const environment = await environmentService.update(id, request.user!.id, validation.data);
 
       return {
         success: true,
@@ -176,7 +176,7 @@ export default async function environmentRoutes(server: FastifyInstance) {
     const { id } = request.params;
 
     try {
-      await environmentService.delete(id, request.user!.userId);
+      await environmentService.delete(id, request.user!.id);
 
       return {
         success: true,
@@ -218,7 +218,7 @@ export default async function environmentRoutes(server: FastifyInstance) {
     try {
       const environment = await environmentService.regenerateSdkKeys(
         id,
-        request.user!.userId,
+        request.user!.id,
         validation.data.keyType
       );
 

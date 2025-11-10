@@ -43,7 +43,6 @@ async function jwtPlugin(server: FastifyInstance) {
         id: user.id,
         email: user.email,
         name: user.name,
-        userId: user.id, // For compatibility with routes
       };
     } catch (err) {
       const error = err as Error;

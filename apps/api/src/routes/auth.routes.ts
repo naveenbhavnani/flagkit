@@ -169,7 +169,7 @@ export default async function authRoutes(server: FastifyInstance) {
     { onRequest: [server.authenticate] },
     async (request: FastifyRequest, reply: FastifyReply) => {
       try {
-        const user = await authService.getUserById(request.user.userId);
+        const user = await authService.getUserById(request.user.id);
 
         return reply.status(200).send({
           success: true,

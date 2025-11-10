@@ -103,8 +103,11 @@ export default async function sdkRoutes(server: FastifyInstance) {
 
     const { flagKey, context } = validation.data;
 
+    // Extract SDK version from headers
+    const sdkVersion = request.headers['x-flagkit-sdk-version'] as string | undefined;
+
     try {
-      const result = await sdkService.evaluateFlag(sdkKey, 'client', flagKey, context);
+      const result = await sdkService.evaluateFlag(sdkKey, 'client', flagKey, context, sdkVersion);
 
       if (!result) {
         return reply.code(404).send({
@@ -152,8 +155,11 @@ export default async function sdkRoutes(server: FastifyInstance) {
 
     const { flagKey, context } = validation.data;
 
+    // Extract SDK version from headers
+    const sdkVersion = request.headers['x-flagkit-sdk-version'] as string | undefined;
+
     try {
-      const result = await sdkService.evaluateFlag(sdkKey, 'server', flagKey, context);
+      const result = await sdkService.evaluateFlag(sdkKey, 'server', flagKey, context, sdkVersion);
 
       if (!result) {
         return reply.code(404).send({

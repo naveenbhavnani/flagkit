@@ -1,10 +1,13 @@
 import { prisma } from '@flagkit/database';
+import {
+  TargetingRule,
+  evaluateRule,
+  isInRollout,
+  EvaluationContext as TargetingContext,
+} from '../types/targeting.types';
+import { AnalyticsService } from './analytics.service';
 
-export interface EvaluationContext {
-  userId?: string;
-  sessionId?: string;
-  attributes?: Record<string, unknown>;
-}
+export type EvaluationContext = TargetingContext;
 
 export interface FlagEvaluation {
   key: string;
@@ -24,6 +27,89 @@ export interface FlagsResponse {
 }
 
 class SdkService {
+  private analyticsService: AnalyticsService;
+
+  constructor() {
+    this.analyticsService = new AnalyticsService(prisma);
+  }
+
+  /**
+   * Evaluate targeting rules and return the variation key
+   */
+  private evaluateTargeting(
+    config: {
+      targetingRules: unknown;
+      rolloutPercentage: number | null;
+      defaultVariationKey: string | null;
+    },
+    flagKey: string,
+    context?: EvaluationContext
+  ): { variationKey: string; reason: string } {
+    // Parse targeting rules
+    let rules: TargetingRule[] = [];
+    if (config.targetingRules && typeof config.targetingRules === 'object') {
+      try {
+        rules = Array.isArray(config.targetingRules)
+          ? (config.targetingRules as TargetingRule[])
+          : [];
+      } catch {
+        // Invalid targeting rules, ignore
+      }
+    }
+
+    // If we have context and targeting rules, evaluate them in order
+    if (context && rules.length > 0) {
+      for (const rule of rules) {
+        if (evaluateRule(rule, context)) {
+          // Rule matched! Check if there's a rollout percentage for this rule
+          if (rule.rolloutPercentage !== undefined && rule.rolloutPercentage < 100) {
+            const inRollout = isInRollout(flagKey, context.userId, rule.rolloutPercentage);
+            if (inRollout) {
+              return {
+                variationKey: rule.variationKey,
+                reason: `TARGETING_RULE:${rule.id}:ROLLOUT`,
+              };
+            }
+            // Not in rollout percentage, continue to next rule
+            continue;
+          }
+
+          // No rollout or 100% rollout - return this variation
+          return {
+            variationKey: rule.variationKey,
+            reason: `TARGETING_RULE:${rule.id}`,
+          };
+        }
+      }
+    }
+
+    // Check global rollout percentage
+    if (config.rolloutPercentage !== null && config.rolloutPercentage > 0) {
+      const inRollout = isInRollout(
+        flagKey,
+        context?.userId,
+        config.rolloutPercentage
+      );
+      if (!inRollout) {
+        // User not in rollout - return default but as disabled
+        return {
+          variationKey: config.defaultVariationKey || 'false',
+          reason: 'ROLLOUT_NOT_INCLUDED',
+        };
+      }
+      return {
+        variationKey: config.defaultVariationKey || 'true',
+        reason: 'ROLLOUT_INCLUDED',
+      };
+    }
+
+    // No targeting rules matched or no context provided - return default
+    return {
+      variationKey: config.defaultVariationKey || 'true',
+      reason: 'DEFAULT',
+    };
+  }
+
   /**
    * Authenticate and get environment by SDK key
    */
@@ -137,7 +223,8 @@ class SdkService {
     sdkKey: string,
     keyType: 'client' | 'server',
     flagKey: string,
-    context?: EvaluationContext
+    context?: EvaluationContext,
+    sdkVersion?: string
   ): Promise<FlagEvaluation | null> {
     const environment = await this.getEnvironmentBySdkKey(sdkKey, keyType);
     if (!environment) {
@@ -167,10 +254,12 @@ class SdkService {
 
     const config = flag.envConfigs[0];
 
+    let evaluation: FlagEvaluation;
+
     // If no config exists, return default disabled state
     if (!config) {
       const defaultVariation = flag.variations.find((v) => v.key === 'false') || flag.variations[0];
-      return {
+      evaluation = {
         key: flag.key,
         value: defaultVariation ? JSON.parse(defaultVariation.value) : false,
         variationKey: defaultVariation?.key || 'false',
@@ -178,14 +267,13 @@ class SdkService {
         reason: 'NO_CONFIG',
       };
     }
-
     // Flag is disabled
-    if (!config.enabled) {
+    else if (!config.enabled) {
       const fallbackVariation = flag.variations.find(
         (v) => v.key === config.fallbackVariationKey
       ) || flag.variations.find((v) => v.key === 'false') || flag.variations[0];
 
-      return {
+      evaluation = {
         key: flag.key,
         value: fallbackVariation ? JSON.parse(fallbackVariation.value) : false,
         variationKey: fallbackVariation?.key || 'false',
@@ -193,22 +281,60 @@ class SdkService {
         reason: 'DISABLED',
       };
     }
+    // Flag is enabled - evaluate targeting rules
+    else {
+      const { variationKey, reason } = this.evaluateTargeting(
+        {
+          targetingRules: config.targetingRules,
+          rolloutPercentage: config.rolloutPercentage,
+          defaultVariationKey: config.defaultVariationKey,
+        },
+        flag.key,
+        context
+      );
 
-    // TODO: Implement targeting rules evaluation
-    // For now, just return the default variation
+      // Find the variation for the determined key
+      const variation = flag.variations.find((v) => v.key === variationKey) ||
+        flag.variations.find((v) => v.key === config.defaultVariationKey) ||
+        flag.variations.find((v) => v.key === 'true') ||
+        flag.variations[0];
 
-    // Flag is enabled - return default variation
-    const defaultVariation = flag.variations.find(
-      (v) => v.key === config.defaultVariationKey
-    ) || flag.variations.find((v) => v.key === 'true') || flag.variations[0];
+      evaluation = {
+        key: flag.key,
+        value: variation ? JSON.parse(variation.value) : true,
+        variationKey: variation?.key || 'true',
+        enabled: true,
+        reason,
+      };
+    }
 
-    return {
-      key: flag.key,
-      value: defaultVariation ? JSON.parse(defaultVariation.value) : true,
-      variationKey: defaultVariation?.key || 'true',
-      enabled: true,
-      reason: 'DEFAULT',
-    };
+    // Track evaluation (async, non-blocking)
+    this.analyticsService.trackEvaluation({
+      flagId: flag.id,
+      environmentId: environment.id,
+      variationKey: evaluation.variationKey,
+      userId: context?.userId,
+      sdkType: keyType,
+      sdkVersion,
+      reason: this.normalizeReason(evaluation.reason),
+    }).catch((err) => {
+      // Log but don't fail the request
+      console.error('Failed to track evaluation:', err);
+    });
+
+    return evaluation;
+  }
+
+  /**
+   * Helper to normalize evaluation reasons for analytics
+   */
+  private normalizeReason(reason: string): 'DEFAULT' | 'TARGETING' | 'ROLLOUT' | 'DISABLED' | 'NO_CONFIG' {
+    if (reason === 'NO_CONFIG') return 'NO_CONFIG';
+    if (reason === 'DISABLED') return 'DISABLED';
+    if (reason === 'DEFAULT') return 'DEFAULT';
+    if (reason.startsWith('TARGETING_RULE')) return 'TARGETING';
+    if (reason.includes('ROLLOUT')) return 'ROLLOUT';
+    return 'DEFAULT';
   }
 }
 

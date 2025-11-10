@@ -39,7 +39,7 @@ export default async function projectRoutes(server: FastifyInstance) {
     try {
       const project = await projectService.create(
         organizationId,
-        request.user!.userId,
+        request.user!.id,
         validation.data
       );
 
@@ -69,7 +69,7 @@ export default async function projectRoutes(server: FastifyInstance) {
     try {
       const projects = await projectService.getOrganizationProjects(
         organizationId,
-        request.user!.userId
+        request.user!.id
       );
 
       return {
@@ -96,7 +96,7 @@ export default async function projectRoutes(server: FastifyInstance) {
     const { id } = request.params;
 
     try {
-      const project = await projectService.getById(id, request.user!.userId);
+      const project = await projectService.getById(id, request.user!.id);
 
       return {
         success: true,
@@ -138,7 +138,7 @@ export default async function projectRoutes(server: FastifyInstance) {
     try {
       const project = await projectService.update(
         id,
-        request.user!.userId,
+        request.user!.id,
         validation.data
       );
 
@@ -167,7 +167,7 @@ export default async function projectRoutes(server: FastifyInstance) {
     const { id } = request.params;
 
     try {
-      await projectService.delete(id, request.user!.userId);
+      await projectService.delete(id, request.user!.id);
 
       return {
         success: true,

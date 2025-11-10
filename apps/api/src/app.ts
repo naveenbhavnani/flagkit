@@ -11,6 +11,8 @@ import projectRoutes from './routes/project.routes';
 import environmentRoutes from './routes/environment.routes';
 import flagRoutes from './routes/flag.routes';
 import sdkRoutes from './routes/sdk.routes';
+import auditRoutes from './routes/audit.routes';
+import analyticsRoutes from './routes/analytics.routes';
 
 export const createServer = async (): Promise<FastifyInstance> => {
   const server = Fastify({
@@ -91,6 +93,8 @@ export const createServer = async (): Promise<FastifyInstance> => {
   await server.register(projectRoutes, { prefix: '/api/v1' });
   await server.register(environmentRoutes, { prefix: '/api/v1' });
   await server.register(flagRoutes, { prefix: '/api/v1' });
+  await server.register(auditRoutes, { prefix: '/' });
+  await server.register(analyticsRoutes, { prefix: '/' });
 
   return server;
 };

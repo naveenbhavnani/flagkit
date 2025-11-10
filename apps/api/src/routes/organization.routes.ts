@@ -29,7 +29,7 @@ export default async function organizationRoutes(server: FastifyInstance) {
     async (request: FastifyRequest, reply: FastifyReply) => {
       try {
         const body = createOrganizationSchema.parse(request.body);
-        const organization = await organizationService.create(request.user.userId, body);
+        const organization = await organizationService.create(request.user.id, body);
 
         return reply.status(201).send({
           success: true,
@@ -78,7 +78,7 @@ export default async function organizationRoutes(server: FastifyInstance) {
     async (request: FastifyRequest, reply: FastifyReply) => {
       try {
         const organizations = await organizationService.getUserOrganizations(
-          request.user.userId
+          request.user.id
         );
 
         return reply.status(200).send({
@@ -101,14 +101,14 @@ export default async function organizationRoutes(server: FastifyInstance) {
    * GET /api/v1/organizations/:id
    * Get organization details
    */
-  server.get(
+  server.get<{ Params: { id: string } }>(
     '/:id',
     { onRequest: [server.authenticate] },
-    async (request: FastifyRequest<{ Params: { id: string } }>, reply: FastifyReply) => {
+    async (request, reply) => {
       try {
         const organization = await organizationService.getById(
           request.params.id,
-          request.user.userId
+          request.user.id
         );
 
         return reply.status(200).send({
@@ -141,15 +141,15 @@ export default async function organizationRoutes(server: FastifyInstance) {
    * PUT /api/v1/organizations/:id
    * Update organization
    */
-  server.put(
+  server.put<{ Params: { id: string } }>(
     '/:id',
     { onRequest: [server.authenticate] },
-    async (request: FastifyRequest<{ Params: { id: string } }>, reply: FastifyReply) => {
+    async (request, reply) => {
       try {
         const body = updateOrganizationSchema.parse(request.body);
         const organization = await organizationService.update(
           request.params.id,
-          request.user.userId,
+          request.user.id,
           body
         );
 
@@ -194,15 +194,15 @@ export default async function organizationRoutes(server: FastifyInstance) {
    * POST /api/v1/organizations/:id/members
    * Invite a member to the organization
    */
-  server.post(
+  server.post<{ Params: { id: string } }>(
     '/:id/members',
     { onRequest: [server.authenticate] },
-    async (request: FastifyRequest<{ Params: { id: string } }>, reply: FastifyReply) => {
+    async (request, reply) => {
       try {
         const body = inviteMemberSchema.parse(request.body);
         const member = await organizationService.inviteMember(
           request.params.id,
-          request.user.userId,
+          request.user.id,
           body
         );
 
@@ -247,17 +247,14 @@ export default async function organizationRoutes(server: FastifyInstance) {
    * DELETE /api/v1/organizations/:id/members/:userId
    * Remove a member from the organization
    */
-  server.delete(
+  server.delete<{ Params: { id: string; userId: string } }>(
     '/:id/members/:userId',
     { onRequest: [server.authenticate] },
-    async (
-      request: FastifyRequest<{ Params: { id: string; userId: string } }>,
-      reply: FastifyReply
-    ) => {
+    async (request, reply) => {
       try {
         await organizationService.removeMember(
           request.params.id,
-          request.user.userId,
+          request.user.id,
           request.params.userId
         );
 
@@ -291,12 +288,12 @@ export default async function organizationRoutes(server: FastifyInstance) {
    * DELETE /api/v1/organizations/:id
    * Delete organization
    */
-  server.delete(
+  server.delete<{ Params: { id: string } }>(
     '/:id',
     { onRequest: [server.authenticate] },
-    async (request: FastifyRequest<{ Params: { id: string } }>, reply: FastifyReply) => {
+    async (request, reply) => {
       try {
-        await organizationService.delete(request.params.id, request.user.userId);
+        await organizationService.delete(request.params.id, request.user.id);
 
         return reply.status(200).send({
           success: true,
