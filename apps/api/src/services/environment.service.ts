@@ -1,5 +1,4 @@
-import { prisma } from '@flagkit/database';
-import { MemberRole } from '@prisma/client';
+import { prisma, MemberRole } from '@flagkit/database';
 
 export interface CreateEnvironmentInput {
   name: string;
