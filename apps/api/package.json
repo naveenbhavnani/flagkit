@@ -33,7 +33,7 @@
     "@flagkit/types": "workspace:*",
     "@prisma/client": "^5.8.0",
     "@types/bcrypt": "^5.0.2",
-    "@types/node": "^20.10.6",
+    "@types/node": "^24.10.0",
     "@types/supertest": "^6.0.3",
     "@typescript-eslint/eslint-plugin": "^6.17.0",
     "@typescript-eslint/parser": "^6.17.0",
