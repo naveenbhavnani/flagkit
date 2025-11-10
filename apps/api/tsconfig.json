@@ -14,9 +14,6 @@
     "dist",
     "src/**/*.test.ts",
     "src/**/__tests__",
-    "src/test",
-    "src/routes/analytics.routes.ts",
-    "src/services/analytics.service.ts",
-    "src/scripts/*analytics*"
+    "src/test"
   ]
 }

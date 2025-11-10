@@ -5,7 +5,6 @@ import {
   isInRollout,
   EvaluationContext as TargetingContext,
 } from '../types/targeting.types';
-import { AnalyticsService } from './analytics.service';
 
 export type EvaluationContext = TargetingContext;
 
@@ -27,11 +26,6 @@ export interface FlagsResponse {
 }
 
 class SdkService {
-  private analyticsService: AnalyticsService;
-
-  constructor() {
-    this.analyticsService = new AnalyticsService(prisma);
-  }
 
   /**
    * Evaluate targeting rules and return the variation key
@@ -224,7 +218,7 @@ class SdkService {
     keyType: 'client' | 'server',
     flagKey: string,
     context?: EvaluationContext,
-    sdkVersion?: string
+    _sdkVersion?: string
   ): Promise<FlagEvaluation | null> {
     const environment = await this.getEnvironmentBySdkKey(sdkKey, keyType);
     if (!environment) {
@@ -308,33 +302,7 @@ class SdkService {
       };
     }
 
-    // Track evaluation (async, non-blocking)
-    this.analyticsService.trackEvaluation({
-      flagId: flag.id,
-      environmentId: environment.id,
-      variationKey: evaluation.variationKey,
-      userId: context?.userId,
-      sdkType: keyType,
-      sdkVersion,
-      reason: this.normalizeReason(evaluation.reason),
-    }).catch((err) => {
-      // Log but don't fail the request
-      console.error('Failed to track evaluation:', err);
-    });
-
     return evaluation;
-  }
-
-  /**
-   * Helper to normalize evaluation reasons for analytics
-   */
-  private normalizeReason(reason: string): 'DEFAULT' | 'TARGETING' | 'ROLLOUT' | 'DISABLED' | 'NO_CONFIG' {
-    if (reason === 'NO_CONFIG') return 'NO_CONFIG';
-    if (reason === 'DISABLED') return 'DISABLED';
-    if (reason === 'DEFAULT') return 'DEFAULT';
-    if (reason.startsWith('TARGETING_RULE')) return 'TARGETING';
-    if (reason.includes('ROLLOUT')) return 'ROLLOUT';
-    return 'DEFAULT';
   }
 }
 
